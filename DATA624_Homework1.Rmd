@@ -1,0 +1,174 @@
+---
+title: "DATA624_HWK1"
+author: "LeTicia Cancel"
+date: "5/31/2022"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 2
+---
+
+```{r warning=FALSE, error=FALSE, message=FALSE}
+library(ggfortify)
+library(openxlsx)
+library(fpp2)
+library(gridExtra)
+library(seasonal)
+```
+
+# Week 1
+
+## HA 2.1
+1. Use the help function to explore what the series gold, woolyrnq and gas represent.
+a. Use autoplot() to plot each of these in separate plots.
+b. What is the frequency of each series? Hint: apply the frequency() function.
+c. Use which.max() to spot the outlier in the gold series. Which observation was it?
+
+```{r}
+#help function for each series
+?gold
+?woolyrnq
+?gas
+?frequency
+```
+
+```{r fig.height=15, fig.width=10}
+#autoplots of each series
+grid.arrange(autoplot(gold),autoplot(woolyrnq),autoplot(gas))
+```
+Gold has an annual frequency.
+Woolyrng has a quarterly frequency. 
+Gas has a monthly frequency. 
+```{r}
+#frequency of each series
+frequency(gold)
+frequency(woolyrnq)
+frequency(gas)
+```
+The outlier for the Gold series is 770
+```{r}
+#gold series ourlier
+which.max(gold)
+```
+
+## HA 2.3
+
+Download some monthly Australian retail data from the book website. These represent retail sales in various categories for different Australian states, and are stored in a MS-Excel file.
+
+a. You can read the data into R with the following script:
+```{r}
+retaildata <- read.xlsx("https://otexts.com/fpp2/extrafiles/retail.xlsx",startRow = 2)
+head(retaildata)
+```
+
+The second argument (skip=1) is required because the Excel sheet has two header rows.
+
+b. Select one of the time series as follows (but replace the column name with your own chosen column):
+```{r}
+myts <- ts(retaildata[,"A3349873A"],
+  frequency=12, start=c(1982,4))
+myts
+
+myts2 <- ts(retaildata[,"A3349791W"],
+            frequency=12, start=c(1982,4))
+myts2
+```
+
+Explore your chosen retail time series using the following functions:
+
+autoplot(), ggseasonplot(), ggsubseriesplot(), gglagplot(), ggAcf()
+
+Can you spot any seasonality, cyclicity and trend? What do you learn about the series?
+
+The first plot using autoplot() shows some seasonality for each year telling us that the price spikes at different points. There is also an upward trend showing that the price of gold continues to increase overtime. The length between the min and max for each of the seasonal spike grows longer each year telling us that the price difference between the minimum and maximum price spreads out more over time. 
+```{r}
+#time series qutoplot
+autoplot(myts2)
+```
+
+The seasonal plot below using ggseasonlot() gives us more clarity on when the seasonality takes place. Each year has a spike in December with the max prices increasing each year. We can take a guess as to why December is the month that spikes since this is when holiday shopping takes place. 
+
+```{r}
+#time series seasonal plot
+ggseasonplot(myts2)
+```
+
+The subseries plot confirms the seasonality shown in the previous plots with December being the seasonal month. This plot creates a better visualization for a couple of details better than the previous plots. The difference between the minimum and maximum over the years is clearer. The minimum has a minor increase in december but the maximum has a dramatic increase when compared to the other months. The mean also has a big increase in December but then levels out during the spring and summer months.
+
+```{r}
+#time series sub series plot
+ggsubseriesplot(myts2)
+```
+
+The lag plot shows strong positive correlation for all months in lag 12.
+
+```{r fig.width=15}
+#time series lag plot
+gglagplot(myts2)
+```
+
+The ACF plot supports the lag plot by showing a high autocorrelation coefficient for lag 12. There are also no negative correlations which was not as clear in the subseries plot. They are also all significantly different from zero. 
+
+```{r}
+#time series ACF
+ggAcf(myts2)
+
+```
+
+## HA 6.2
+The plastics data set consists of the monthly sales (in thousands) of product A for a plastics manufacturer for five years.
+
+a. Plot the time series of sales of product A. Can you identify seasonal fluctuations and/or a trend-cycle?
+
+
+```{r fig.width=10, fig.height=15}
+#autoplot(), ggseasonplot(), ggsubseriesplot(), gglagplot(), ggAcf()
+p1 <- autoplot(plastics)
+p2 <- ggseasonplot(plastics)
+p3 <- ggsubseriesplot(plastics)
+p4 <- gglagplot(plastics)
+p5 <- ggAcf(plastics)
+grid.arrange(p1,p2,p3,p5,p4, ncol=1)
+```
+
+b. Use a classical multiplicative decomposition to calculate the trend-cycle and seasonal indices.
+
+```{r fig.height=5}
+#multiplicative decomposition
+plastics %>%
+  decompose(type = "multiplicative") %>%
+  autoplot()
+
+plastics %>%
+  seas(x11="") -> fit
+autoplot(fit)
+```
+
+c. Do the results support the graphical interpretation from part a?
+
+The "Data" and "Seasonal" sections of the Decomposition shows similar results to the autoplot() chart. There is a steady seasonal trend that has a similar duration for each seasonal cycle. The "Trend" section of the Decomposition also supports the visuals from part A and shows a steady upward trend from years 1-5. 
+
+d. Compute and plot the seasonally adjusted data.
+```{r}
+autoplot(plastics, series = "Data") +
+  autolayer(trendcycle(plastics), series = "Trend") +
+  autolayer(seasadj(plastics), series = "Seasonally Adjusted")
+```
+
+e. Change one observation to be an outlier (e.g., add 500 to one observation), and recompute the seasonally adjusted data. What is the effect of the outlier?
+```{r}
+
+```
+
+f. Does it make any difference if the outlier is near the end rather than in the middle of the time series?
+```{r}
+
+```
+
+
+# Week 2
+
+
+
+
