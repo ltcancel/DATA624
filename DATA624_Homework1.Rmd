@@ -136,11 +136,10 @@ b. Use a classical multiplicative decomposition to calculate the trend-cycle and
 
 ```{r fig.height=5}
 #multiplicative decomposition
-plastics %>%
-  decompose(type = "multiplicative") %>%
-  autoplot()
+decomp_plastics <- plastics %>%
+  decompose(type = "multiplicative")
 
-
+decomp_plastics %>% autoplot()
 ```
 
 c. Do the results support the graphical interpretation from part a?
@@ -148,10 +147,11 @@ c. Do the results support the graphical interpretation from part a?
 The "Data" and "Seasonal" sections of the Decomposition shows similar results to the autoplot() chart. There is a steady seasonal trend that has a similar duration for each seasonal cycle. The "Trend" section of the Decomposition also supports the visuals from part A and shows a steady upward trend from years 1-5. 
 
 d. Compute and plot the seasonally adjusted data.
-The example in 6.4 in the text book gives me errors so I am testing using STL instead
+
 ```{r}
-#autoplot(plastics, series = "Data") +
-#  autolayer(seasadj(plastics), series = "Trend") 
+autoplot(plastics, series = "Data") +  
+  autolayer(trendcycle(decomp_plastics), series = "Trend") +
+  autolayer(seasadj(decomp_plastics), series = "Seasonally Adjusted")
 
 #fit <- seas(x = plastics, x11="")
 
@@ -161,13 +161,51 @@ plastics %>%
 ```
 
 e. Change one observation to be an outlier (e.g., add 500 to one observation), and recompute the seasonally adjusted data. What is the effect of the outlier?
+The outlier was applied to the first observation in the plastics data so the chart changed only in year 1. The outlier being in the beginning of the data had no impact on the rest of the plot.
 ```{r}
+#creating a copy of plastics and adding 500 to one observation
+plastics2 <- plastics
+plastics2[1] <- plastics2[1] + 500
 
+decomp_plastics2 <- plastics2 %>%
+  decompose(type = "multiplicative")
+
+autoplot(plastics2, series = "Data") +  
+  autolayer(trendcycle(decomp_plastics2), series = "Trend") +
+  autolayer(seasadj(decomp_plastics2), series = "Seasonally Adjusted")
 ```
 
 f. Does it make any difference if the outlier is near the end rather than in the middle of the time series?
-```{r}
 
+The middle outlier has a greater impact on the Seasonally adjusted line than the end outlier when compared to the original plot. When the last observation is the outlier the Data and Seasonally Adjusted lines trend upward and all other areas on the chart are not impacted. When a middle observation is the outlier we see a different seasonally adusted line when compared to the original chart. The downward and upward spikes around the outlier are sharper on the middle outlier chart while the original chart has subtle changes with a fairly even upward trend. 
+```{r fig.height=10}
+plastics_mid <- plastics
+plastics_end <- plastics
+plastics_mid[30] <- plastics_mid[30] + 500
+plastics_end[60] <- plastics_end[60] + 500
+
+decomp_mid <- plastics_mid %>%
+  decompose(type = "multiplicative")
+
+p <- autoplot(plastics, series = "Data") +  
+  autolayer(trendcycle(decomp_plastics), series = "Trend") +
+  autolayer(seasadj(decomp_plastics), series = "Seasonally Adjusted") +
+  ggtitle("Plastics Seasonally Adjusted - Original")
+
+p1 <- autoplot(plastics_mid, series = "Data") +  
+  autolayer(trendcycle(decomp_mid), series = "Trend") +
+  autolayer(seasadj(decomp_mid), series = "Seasonally Adjusted") +
+  ggtitle("Plastics Seasonally Adjusted - Mid Observation")
+
+decomp_end <- plastics_end %>%
+  decompose(type = "multiplicative")
+
+p2 <- autoplot(plastics_end, series = "Data") +  
+  autolayer(trendcycle(decomp_end), series = "Trend") +
+  autolayer(seasadj(decomp_end), series = "Seasonally Adjusted") +
+  ggtitle("Plastics Seasonally Adjusted - End Observation")
+
+grid.arrange(p, p1,p2)
 ```
 
 
