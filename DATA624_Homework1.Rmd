@@ -140,9 +140,7 @@ plastics %>%
   decompose(type = "multiplicative") %>%
   autoplot()
 
-plastics %>%
-  seas(x11="") -> fit
-autoplot(fit)
+
 ```
 
 c. Do the results support the graphical interpretation from part a?
@@ -150,10 +148,16 @@ c. Do the results support the graphical interpretation from part a?
 The "Data" and "Seasonal" sections of the Decomposition shows similar results to the autoplot() chart. There is a steady seasonal trend that has a similar duration for each seasonal cycle. The "Trend" section of the Decomposition also supports the visuals from part A and shows a steady upward trend from years 1-5. 
 
 d. Compute and plot the seasonally adjusted data.
+The example in 6.4 in the text book gives me errors so I am testing using STL instead
 ```{r}
-autoplot(plastics, series = "Data") +
-  autolayer(trendcycle(plastics), series = "Trend") +
-  autolayer(seasadj(plastics), series = "Seasonally Adjusted")
+#autoplot(plastics, series = "Data") +
+#  autolayer(seasadj(plastics), series = "Trend") 
+
+#fit <- seas(x = plastics, x11="")
+
+plastics %>%
+  stl(s.window = "periodic", robust = TRUE) %>%
+  autoplot()
 ```
 
 e. Change one observation to be an outlier (e.g., add 500 to one observation), and recompute the seasonally adjusted data. What is the effect of the outlier?
