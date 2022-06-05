@@ -1,11 +1,14 @@
 ---
-title: "DATA624_HWK1"
-author: "LeTicia Cancel"
+title: "DATA624 Homework 1"
+author: "Esteban Aramayo, Coffy Andrews-Guo, LeTicia Cancel, Joseph Connolly, Ian Costello"
 date: "5/31/2022"
-output: 
+output:
+  word_document:
+    toc: yes
+    toc_depth: '2'
   html_document:
-    toc: true
-    toc_float: true
+    toc: yes
+    toc_float: yes
     toc_depth: 2
 ---
 
@@ -19,52 +22,62 @@ library(seasonal)
 
 # Week 1
 
-## HA 2.1
-1. Use the help function to explore what the series gold, woolyrnq and gas represent.
-a. Use autoplot() to plot each of these in separate plots.
-b. What is the frequency of each series? Hint: apply the frequency() function.
-c. Use which.max() to spot the outlier in the gold series. Which observation was it?
+## HA 2.1 
+
+### Use the help function to explore what the series `gold`, `woolyrnq` and `gas` represent.
 
 ```{r}
 #help function for each series
-?gold
-?woolyrnq
-?gas
-?frequency
+??gold
 ```
+
+```{r}
+??woolyrnq
+```
+
+```{r}
+??gas
+```
+
+### a. Use `autoplot()` to plot each of these in separate plots.
 
 ```{r fig.height=15, fig.width=10}
 #autoplots of each series
 grid.arrange(autoplot(gold),autoplot(woolyrnq),autoplot(gas))
 ```
-Gold has an annual frequency.
-Woolyrng has a quarterly frequency. 
-Gas has a monthly frequency. 
+
+### b. What is the frequency of each series? Hint: apply the `frequency()` function.
+
+- `gold` has a frequency of 1, meaning it is annual.
+- `Woolyrng` has a frequency of 1, meaning it is quarterly. 
+- `gas` has a frequency of 12, meaning it is monthly.
+
 ```{r}
 #frequency of each series
 frequency(gold)
 frequency(woolyrnq)
 frequency(gas)
 ```
-The outlier for the Gold series is 770
+
+### c. Use `which.max()` to spot the outlier in the `gold` series. Which observation was it?
+ 
+The outlier for the `gold` series is observation number 770, with the value of 593.7.
+
 ```{r}
-#gold series ourlier
 which.max(gold)
+gold[which.max(gold)]
 ```
 
 ## HA 2.3
 
 Download some monthly Australian retail data from the book website. These represent retail sales in various categories for different Australian states, and are stored in a MS-Excel file.
 
-a. You can read the data into R with the following script:
+### a. You can read the data into R with the following script:
 ```{r}
 retaildata <- read.xlsx("https://otexts.com/fpp2/extrafiles/retail.xlsx",startRow = 2)
-head(retaildata)
 ```
 
-The second argument (skip=1) is required because the Excel sheet has two header rows.
-
-b. Select one of the time series as follows (but replace the column name with your own chosen column):
+### b. Select one of the time series as follows (but replace the column name with your own chosen column):
 ```{r}
 myts <- ts(retaildata[,"A3349873A"],
   frequency=12, start=c(1982,4))
@@ -75,11 +88,11 @@ myts2 <- ts(retaildata[,"A3349791W"],
 myts2
 ```
 
-Explore your chosen retail time series using the following functions:
+#### Explore your chosen retail time series using the following functions:
 
-autoplot(), ggseasonplot(), ggsubseriesplot(), gglagplot(), ggAcf()
+`autoplot()`, `ggseasonplot()`, `ggsubseriesplot()`, `gglagplot()`, `ggAcf()`
 
-Can you spot any seasonality, cyclicity and trend? What do you learn about the series?
+#### Can you spot any seasonality, cyclicity and trend? What do you learn about the series?
 
 The first plot using autoplot() shows some seasonality for each year telling us that the price spikes at different points. There is also an upward trend showing that the price of gold continues to increase overtime. The length between the min and max for each of the seasonal spike grows longer each year telling us that the price difference between the minimum and maximum price spreads out more over time. 
 ```{r}
@@ -119,7 +132,7 @@ ggAcf(myts2)
 ## HA 6.2
 The plastics data set consists of the monthly sales (in thousands) of product A for a plastics manufacturer for five years.
 
-a. Plot the time series of sales of product A. Can you identify seasonal fluctuations and/or a trend-cycle?
+### a. Plot the time series of sales of product A. Can you identify seasonal fluctuations and/or a trend-cycle?
 
 
 ```{r fig.width=10, fig.height=15}
@@ -132,7 +145,7 @@ p5 <- ggAcf(plastics)
 grid.arrange(p1,p2,p3,p5,p4, ncol=1)
 ```
 
-b. Use a classical multiplicative decomposition to calculate the trend-cycle and seasonal indices.
+### b. Use a classical multiplicative decomposition to calculate the trend-cycle and seasonal indices.
 
 ```{r fig.height=5}
 #multiplicative decomposition
@@ -142,11 +155,11 @@ decomp_plastics <- plastics %>%
 decomp_plastics %>% autoplot()
 ```
 
-c. Do the results support the graphical interpretation from part a?
+### c. Do the results support the graphical interpretation from part a?
 
 The "Data" and "Seasonal" sections of the Decomposition shows similar results to the autoplot() chart. There is a steady seasonal trend that has a similar duration for each seasonal cycle. The "Trend" section of the Decomposition also supports the visuals from part A and shows a steady upward trend from years 1-5. 
 
-d. Compute and plot the seasonally adjusted data.
+### d. Compute and plot the seasonally adjusted data.
 
 ```{r}
 autoplot(plastics, series = "Data") +  
@@ -160,7 +173,7 @@ plastics %>%
   autoplot()
 ```
 
-e. Change one observation to be an outlier (e.g., add 500 to one observation), and recompute the seasonally adjusted data. What is the effect of the outlier?
+### e. Change one observation to be an outlier (e.g., add 500 to one observation), and recompute the seasonally adjusted data. What is the effect of the outlier?
 The outlier was applied to the first observation in the plastics data so the chart changed only in year 1. The outlier being in the beginning of the data had no impact on the rest of the plot.
 ```{r}
 #creating a copy of plastics and adding 500 to one observation
@@ -175,7 +188,7 @@ autoplot(plastics2, series = "Data") +
   autolayer(seasadj(decomp_plastics2), series = "Seasonally Adjusted")
 ```
 
-f. Does it make any difference if the outlier is near the end rather than in the middle of the time series?
+### f. Does it make any difference if the outlier is near the end rather than in the middle of the time series?
 
 The middle outlier has a greater impact on the Seasonally adjusted line than the end outlier when compared to the original plot. When the last observation is the outlier the Data and Seasonally Adjusted lines trend upward and all other areas on the chart are not impacted. When a middle observation is the outlier we see a different seasonally adusted line when compared to the original chart. The downward and upward spikes around the outlier are sharper on the middle outlier chart while the original chart has subtle changes with a fairly even upward trend. 
 ```{r fig.height=10}
@@ -207,7 +220,6 @@ p2 <- autoplot(plastics_end, series = "Data") +
 
 grid.arrange(p, p1,p2)
 ```
-
 
 # Week 2
 
