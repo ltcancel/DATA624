@@ -223,6 +223,14 @@ grid.arrange(p, p1,p2)
 
 # Week 2
 
+## KJ 3.1
 
+## KJ 635
+
+## HA 7.1
+
+## HA 7.2 
+
+## HA 7.3
 
 
