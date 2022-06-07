@@ -16,6 +16,7 @@ output:
 library(ggfortify)
 library(openxlsx)
 library(fpp2)
+library(fma)
 library(gridExtra)
 library(seasonal)
 ```
@@ -228,6 +229,27 @@ grid.arrange(p, p1,p2)
 ## KJ 635
 
 ## HA 7.1
+
+### Consider the pigs series — the number of pigs slaughtered in Victoria each month.
+
+```{r}
+help(pigs)
+pigs %>% autoplot()
+```
+
+### a. Use the `ses()` function in R to find the optimal values of \(\alpha\) and \(l_0\) and generate forecasts for the next four months.
+
+Reference: http://uc-r.github.io/ts_exp_smoothing#ses
+
+```{r}
+fc <- ses(pigs, alpha = 0.2, h=4)
+fc %>% autoplot()
+fc
+```
+
+#### Compute a 95% prediction interval for the first forecast using \(\hat{y}\pm 1.96s\) where \(s\) is the standard deviation of the residuals. Compare your interval with the interval produced by R.
+
+
 
 ## HA 7.2 
 
