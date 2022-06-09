@@ -239,17 +239,29 @@ pigs %>% autoplot()
 
 ### a. Use the `ses()` function in R to find the optimal values of \(\alpha\) and \(l_0\) and generate forecasts for the next four months.
 
-Reference: http://uc-r.github.io/ts_exp_smoothing#ses
+Using the `summary()` function $\alpha = 0.2971$ and $l_0 = 77260.0561$.
 
 ```{r}
-fc <- ses(pigs, alpha = 0.2, h=4)
-fc %>% autoplot()
-fc
+fc<- ses(pigs, h=4)
+
+fc %>%
+  autoplot()
+
+summary(fc)
 ```
 
-#### Compute a 95% prediction interval for the first forecast using \(\hat{y}\pm 1.96s\) where \(s\) is the standard deviation of the residuals. Compare your interval with the interval produced by R.
+#### b. Compute a 95% prediction interval for the first forecast using \(\hat{y}\pm 1.96s\) where \(s\) is the standard deviation of the residuals. Compare your interval with the interval produced by R.
 
+From chapter 3.5. Prediction intervals are calculated as $\hat{y}_T+h|T \pm c \hat{\sigma}_h$. The multiplier for 95% interval is 1.96 and the residuals are also equal to the RMSE. Using the SES model formula from part a, the $\hat{y} values are stored in a vector as are the residuals. Then, the values are subbed in for the formula. 
 
+The computed intervals vs. the predicted intervals are quite close. The September 1995 low interval at 95% is 78611.97, compared to the computed 78679.97 only a difference of 68. The high values for the predicted interval at 95% is 119020.80, compared to 118952.84 again differing by 68.
+
+```{r}
+y_hat <- c(1.96, -1.96)
+s <- sd(residuals(fc))
+
+ses(pigs, h=4)$mean[1]+(y_hat*s)
+```
 
 ## HA 7.2 
 
