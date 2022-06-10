@@ -148,7 +148,7 @@ grid.arrange(p1,p2,p3,p5,p4, ncol=1)
 
 ### b. Use a classical multiplicative decomposition to calculate the trend-cycle and seasonal indices.
 
-```{r fig.height=5}
+```{r fig.height=5, warning=FALSE}
 #multiplicative decomposition
 decomp_plastics <- plastics %>%
   decompose(type = "multiplicative")
@@ -162,7 +162,7 @@ The "Data" and "Seasonal" sections of the Decomposition shows similar results to
 
 ### d. Compute and plot the seasonally adjusted data.
 
-```{r}
+```{r warning=FALSE}
 autoplot(plastics, series = "Data") +  
   autolayer(trendcycle(decomp_plastics), series = "Trend") +
   autolayer(seasadj(decomp_plastics), series = "Seasonally Adjusted")
@@ -176,7 +176,7 @@ plastics %>%
 
 ### e. Change one observation to be an outlier (e.g., add 500 to one observation), and recompute the seasonally adjusted data. What is the effect of the outlier?
 The outlier was applied to the first observation in the plastics data so the chart changed only in year 1. The outlier being in the beginning of the data had no impact on the rest of the plot.
-```{r}
+```{r warning=FALSE}
 #creating a copy of plastics and adding 500 to one observation
 plastics2 <- plastics
 plastics2[1] <- plastics2[1] + 500
@@ -192,7 +192,7 @@ autoplot(plastics2, series = "Data") +
 ### f. Does it make any difference if the outlier is near the end rather than in the middle of the time series?
 
 The middle outlier has a greater impact on the Seasonally adjusted line than the end outlier when compared to the original plot. When the last observation is the outlier the Data and Seasonally Adjusted lines trend upward and all other areas on the chart are not impacted. When a middle observation is the outlier we see a different seasonally adusted line when compared to the original chart. The downward and upward spikes around the outlier are sharper on the middle outlier chart while the original chart has subtle changes with a fairly even upward trend. 
-```{r fig.height=10}
+```{r fig.height=10, warning=FALSE}
 plastics_mid <- plastics
 plastics_end <- plastics
 plastics_mid[30] <- plastics_mid[30] + 500
