@@ -22,6 +22,7 @@ library(seasonal)
 library(ggplot2)
 library(patchwork)
 library(caret)
+library(grid)
 ```
 
 # Week 1
@@ -304,20 +305,41 @@ Experimenting with BoxCox transformations for Ba and Fe since both predictors ar
 
 ```
 
-
-
 ## KJ 3.2
 
 The soybean data can also be found at the UC Irvine Machine Learning Repository. Data were collected to predict disease in 683 soybeans. The 35 predictors are mostly categorical and include information on the environmental conditions (e.g., temperature, precipitation) and plant conditions (e.g., left spots, mold growth). The outcome labels consist of 19 distinct classes. The data can be loaded via:
 ```{r}
 library(mlbench)
 data(Soybean)
+head(Soybean)
+summary(Soybean)
 ## See ?Soybean for details
 ```
 
 ### a. Investigate the frequency distributions for the categorical predictors. Are any of the distributions degenerate in the ways discussed earlier in this chapter?
+
+```{r fig.height=15, fig.width=10}
+col_names <- colnames(Soybean[-1])
+
+plot_list <- list()
+
+for (i in col_names){
+  plot <- ggplot(Soybean, aes_string(Soybean[,i])) +
+    geom_bar() +
+    xlab(colnames(Soybean[i])) 
+  plot_list[[i]] <- plot
+    #print(plot)
+}
+
+grid.arrange(grobs=plot_list, ncol=4)
+```
+
 ### b. Roughly 18 % of the data are missing. Are there particular predictors that are more likely to be missing? Is the pattern of missing data related to the classes?
+
 ### c. Develop a strategy for handling missing data, either by eliminating predictors or imputation.
+```{r}
+```
+
 
 ## KJ 635
 
@@ -359,5 +381,13 @@ ses(pigs, h=4)$mean[1]+(y_hat*s)
 ## HA 7.2 
 
 ## HA 7.3
+
+## HA 8.1
+
+## HA 8.2
+
+## HA 8.6
+
+## HA 8.8
 
 
