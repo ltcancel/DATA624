@@ -318,6 +318,8 @@ summary(Soybean)
 
 ### a. Investigate the frequency distributions for the categorical predictors. Are any of the distributions degenerate in the ways discussed earlier in this chapter?
 
+All but one predictor contain NA values and can be evaluated to see if it is a degenerate distribution. There are no predictors where NA outnumber real values but there are some with a large number of NA. 'hail', 'sever', 'seed.tmt', and 'germ' have a large amount of NA values so we will explore how that impacts the data later. 
+
 ```{r fig.height=15, fig.width=10}
 col_names <- colnames(Soybean[-1])
 
@@ -335,6 +337,10 @@ grid.arrange(grobs=plot_list, ncol=4)
 ```
 
 ### b. Roughly 18 % of the data are missing. Are there particular predictors that are more likely to be missing? Is the pattern of missing data related to the classes?
+```{r}
+
+```
+
 
 ### c. Develop a strategy for handling missing data, either by eliminating predictors or imputation.
 ```{r}
