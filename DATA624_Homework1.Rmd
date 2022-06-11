@@ -272,21 +272,28 @@ fe_b <- ggplot(Glass, aes(x = Type, y = Fe)) +
 
 ri_b+na_b+mg_b+al_b+si_b+k_b+ca_b+ba_b+fe_b+
   plot_layout(ncol=3)
+```
+```{r fig.height=10, fig.width=10}
+ri_d <- ggplot(Glass, aes(RI, color=Type)) + geom_density()
+na_d <- ggplot(Glass, aes(Na, color=Type)) + geom_density()
+mg_d <- ggplot(Glass, aes(Mg, color=Type)) + geom_density()
+al_d <- ggplot(Glass, aes(Al, color=Type)) + geom_density()
+si_d <- ggplot(Glass, aes(Si, color=Type)) + geom_density()
+k_d <- ggplot(Glass, aes(K, color=Type)) + geom_density()
+ca_d <- ggplot(Glass, aes(Ca, color=Type)) + geom_density()
+ba_d <- ggplot(Glass, aes(Ba, color=Type)) + geom_density()
+fe_d <- ggplot(Glass, aes(Fe, color=Type)) + geom_density()
 
-
+ri_d+na_d+mg_d+al_d+si_d+k_d+ca_d+ba_d+fe_d+
+  plot_layout(ncol=3)
 ```
 
 ### b. Do there appear to be any outliers in the data? Are any predictors skewed?
 
-The boxplots help us see the outliers for each type for each predictor. 
-```{r}
-
-```
+The boxplots help us see the outliers for each type for each predictor. Type 2 has outliers for the Ri, Mg, and Ca predictors. The Ba predictor has more data for Type 7 with the rest of the types being scattered. The mean for Si is consistent between all types. When we explore the distribution plots we see that Si is closest to a normal distribution. K, Ba, and Fa are left skewed and Mg is right skewed. The other predictors are slightly skewed.
 
 ### c. Are there any relevant transformations of one or more predictors that might improve the classification model?
-```{r}
 
-```
 
 ## KJ 3.2
 
