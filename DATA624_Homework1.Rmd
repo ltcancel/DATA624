@@ -19,6 +19,8 @@ library(fpp2)
 library(fma)
 library(gridExtra)
 library(seasonal)
+library(ggplot2)
+library(patchwork)
 ```
 
 # Week 1
@@ -226,20 +228,57 @@ grid.arrange(p, p1,p2)
 
 ## KJ 3.1
 
-The UC Irvine Machine Learning Repository6 contains a data set related to glass identification. The data consist of 214 glass samples labeled as one of seven class categories. There are nine predictors, including the refractive index and percentages of eight elements: Na, Mg, Al, Si, K, Ca, Ba, and Fe. The data can be accessed via:
+The UC Irvine Machine Learning Repository contains a data set related to glass identification. The data consist of 214 glass samples labeled as one of seven class categories. There are nine predictors, including the refractive index and percentages of eight elements: Na, Mg, Al, Si, K, Ca, Ba, and Fe. The data can be accessed via:
 ```{r warning=FALSE, error=FALSE}
 library(mlbench)
 data(Glass)
 str(Glass)
 ```
 
-### a. Using visualizations, explore the predictor variables to understand their
-distributions as well as the relationships between predictors.
+### a. Using visualizations, explore the predictor variables to understand their distributions as well as the relationships between predictors.
+When we explore the Glass dataset using summary we see that there are no NA values for any of the predictors. There are also no negative values with the minimum value being 0.00 (zero) for some predictors. 
 ```{r}
+summary(Glass)
+```
+
+```{r fig.width=10, fig.height=10}
+ri_b <- ggplot(Glass, aes(x = Type, y = RI)) +
+  geom_boxplot()
+
+na_b <- ggplot(Glass, aes(x = Type, y = Na)) +
+  geom_boxplot()
+
+mg_b <- ggplot(Glass, aes(x = Type, y = Mg)) +
+  geom_boxplot()
+
+al_b <- ggplot(Glass, aes(x = Type, y = Al)) +
+  geom_boxplot()
+
+si_b <- ggplot(Glass, aes(x = Type, y = Si)) +
+  geom_boxplot()
+
+k_b <- ggplot(Glass, aes(x = Type, y = K)) +
+  geom_boxplot()
+
+ca_b <- ggplot(Glass, aes(x = Type, y = Ca)) +
+  geom_boxplot()
+
+ba_b <- ggplot(Glass, aes(x = Type, y = Ba)) +
+  geom_boxplot()
+
+fe_b <- ggplot(Glass, aes(x = Type, y = Fe)) +
+  geom_boxplot()
+
+
+ri_b+na_b+mg_b+al_b+si_b+k_b+ca_b+ba_b+fe_b+
+  plot_layout(ncol=3)
+
 
 ```
 
 ### b. Do there appear to be any outliers in the data? Are any predictors skewed?
+
+The boxplots help us see the outliers for each type for each predictor. 
 ```{r}
 
 ```
