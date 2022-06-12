@@ -371,6 +371,7 @@ fe_b <- ggplot(Glass, aes(x = Type, y = Fe)) +
 ri_b+na_b+mg_b+al_b+si_b+k_b+ca_b+ba_b+fe_b+
   plot_layout(ncol=3)
 ```
+
 ```{r fig.height=10, fig.width=10}
 ri_d <- ggplot(Glass, aes(RI, color=Type)) + geom_density()
 na_d <- ggplot(Glass, aes(Na, color=Type)) + geom_density()
@@ -404,7 +405,7 @@ Experimenting with BoxCox transformations for Ba and Fe since both predictors ar
 ## KJ 3.2
 
 The soybean data can also be found at the UC Irvine Machine Learning Repository. Data were collected to predict disease in 683 soybeans. The 35 predictors are mostly categorical and include information on the environmental conditions (e.g., temperature, precipitation) and plant conditions (e.g., left spots, mold growth). The outcome labels consist of 19 distinct classes. The data can be loaded via:
-```{r}
+```{r fig.height=10, fig.width=10}
 library(mlbench)
 data(Soybean)
 head(Soybean)
@@ -433,13 +434,23 @@ grid.arrange(grobs=plot_list, ncol=4)
 ```
 
 ### b. Roughly 18 % of the data are missing. Are there particular predictors that are more likely to be missing? Is the pattern of missing data related to the classes?
-```{r}
 
+Of the 18% of missing data, 8% come from 19 out of 36 columns. 
+```{r fig.width=20,fig.height=10, message=FALSE}
+#library(mice)
+#library(VIM)
+#md.pattern(Soybean)
+
+aggr(Soybean, col=c('navyblue','yellow'),
+     numbers=TRUE, sortVars=TRUE,
+     labels=names(Soybean), cex.axis=.7,
+     gap=3, ylab=c("Missing data","Pattern"))
 ```
 
 
 ### c. Develop a strategy for handling missing data, either by eliminating predictors or imputation.
 ```{r}
+
 ```
 
 
@@ -496,7 +507,20 @@ ses(pigs, h=4)$mean[1]+(y_hat*s)
 
 ## HA 7.2 
 
+#### Write your own function to implement simple exponential smoothing. The function should take arguments y (the time series), alpha (the smoothing parameter α) and level (the initial level ℓ0). It should return the forecast of the next observation in the series. Does it give the same forecast as ses()?
+
+```{r}
+
+```
+
+
 ## HA 7.3
+#### Modify your function from the previous exercise to return the sum of squared errors rather than the forecast of the next observation. Then use the optim() function to find the optimal values of α and ℓ0. Do you get the same values as the ses() function?
+
+```{r}
+
+```
+
 
 ## HA 8.1
 
