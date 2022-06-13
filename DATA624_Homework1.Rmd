@@ -449,8 +449,33 @@ aggr(Soybean, col=c('navyblue','yellow'),
 
 
 ### c. Develop a strategy for handling missing data, either by eliminating predictors or imputation.
-```{r}
 
+I chose to impute the data instead of eliminating predictors altogether. Predictors with NA values still had enough data where I didn't feel that complete removal was necessary. Below is a comparison of the summary for the original dataset and the imputed dataset. After the imputation, the numbers do not differ too much but we would need to continue this analysis to see how much the imputation impacted the dataset. 
+```{r}
+impute_soybean <- parlmice(Soybean, maxit = 5, m = 1, printFlag = FALSE, seed = 500, cluster.seed = 500)
+Soybean_2 <- complete(impute_soybean,1)
+```
+
+```{r}
+#original Soybean data
+summary(Soybean)
+#imputed soybean data
+summary(Soybean_2)
+```
+```{r fig.height=15, fig.width=10}
+col_names <- colnames(Soybean_2[-1])
+
+plot_list <- list()
+
+for (i in col_names){
+  plot <- ggplot(Soybean_2, aes_string(Soybean_2[,i])) +
+    geom_bar() +
+    xlab(colnames(Soybean_2[i])) 
+  plot_list[[i]] <- plot
+    #print(plot)
+}
+
+grid.arrange(grobs=plot_list, ncol=4)
 ```
 
 
