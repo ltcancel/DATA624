@@ -25,6 +25,8 @@ df <- read_excel("data.xls")
 head(df)
 ```
 
+## Data Exploration
+
 ```{r}
 summary(df)
 ```
@@ -45,6 +47,7 @@ p1+p2+p3+p4+p5+
   plot_layout(ncol = 3)
 ```
 
+All predictors are left skewed so transformations are needed for each column
 ```{r warning=FALSE, fig.width=10, fig.height=7}
 p1 <- ggplot(df, aes(Var01, color=category)) +
   geom_density()
@@ -68,7 +71,11 @@ aggr(df, col=c('navyblue','yellow'),
      labels=names(df), cex.axis=.7,
      gap=3, ylab=c("Missing data","Pattern"))
 ```
+## Data transformations
 
+```{r}
+
+```
 
 
 
