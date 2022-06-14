@@ -1,5 +1,5 @@
 ---
-title: "Data624 Project 1"
+title: "Data624 - Project 1"
 author: "Esteban Aramayo, Coffy Andrews-Guo, LeTicia Cancel, Joseph Connolly, Ian Costello"
 date: '2022-06-13'
 output: 
@@ -15,10 +15,17 @@ output:
 ```{r warning=FALSE}
 #libraries
 library(readxl)
+library(tidyverse)
+library(ggplot2)
+library(patchwork)
 ```
 
+# Project Summary
 
+De-identified data was provided to conduct a series of six forecasts of different variables of a provided data set. There are two major requirements of this project:
 
+1. This written report
+2. The forecasts and error rates
 
 ```{r}
 df <- read_excel("data.xls")
@@ -27,7 +34,11 @@ head(df)
 
 ## Data Exploration
 
-Summary of each column. Each predictor has NA values but I'm not sure what proportion of the data is NA yet. Column Var02's values differ the most when compared to the other Var## columns. So we will see how that impacts the data.
+The data set does not appear to have any distinguishing labels that would indicate anything about the source or purpose of the data set. Under normal circumstances, context about data and use case is important for forecasting. Context may help identify the kinds of methods and models that would be best suited to produce an accurate result - following the "no free lunch" principle. 
+
+Starting with some data exploration using `summary()` 
+
+each predictor has NA values but I'm not sure what proportion of the data is NA yet. Column Var02's values differ the most when compared to the other Var## columns. So we will see how that impacts the data.
 ```{r}
 summary(df)
 ```
@@ -45,7 +56,7 @@ p5 <- ggplot(df, aes(category, Var07)) +
   geom_boxplot()
 
 p1+p2+p3+p4+p5+
-  plot_layout(ncol = 3)
+  plot_layout(ncol = 2)
 ```
 
 All predictors are left skewed so transformations are needed for each column
@@ -83,6 +94,7 @@ skewness(df$Var03, na.rm = TRUE)
 skewness(df$Var05, na.rm = TRUE)
 skewness(df$Var07, na.rm = TRUE)
 ```
+
 Experimenting with 3 different transformations; log, square root, and cube root. The log transformation looks the most normalized
 ```{r error=FALSE}
 log_var01 <- log10(df$Var01)
