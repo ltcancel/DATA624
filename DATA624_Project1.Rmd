@@ -27,10 +27,11 @@ head(df)
 
 ## Data Exploration
 
+Summary of each column. Each predictor has NA values but I'm not sure what proportion of the data is NA yet. Column Var02's values differ the most when compared to the other Var## columns. So we will see how that impacts the data.
 ```{r}
 summary(df)
 ```
-Boxplots: Var02 has the most outliers
+Boxplots: Var02 has the most outliers but this is also the column with the largest range in values
 ```{r warning=FALSE, fig.width=10, fig.height=8}
 p1 <- ggplot(df, aes(category, Var01)) +
   geom_boxplot()
@@ -73,6 +74,7 @@ aggr(df, col=c('navyblue','yellow'),
 ```
 ## Data transformations
 
+Var02 is the most skewed
 ```{r}
 library(moments)
 skewness(df$Var01, na.rm = TRUE)
@@ -105,7 +107,7 @@ df_transformed$Var05 <- log10(df$Var05)
 df_transformed$Var07 <- log10(df$Var07)
 ```
 
-New plots using transformed dataframe
+New plots using transformed dataframe. Var02 is the most normalize so I will try different transformations with the other columns
 ```{r warning=FALSE, fig.width=10, fig.height=7}
 p1 <- ggplot(df_transformed, aes(Var01, color=category)) +
   geom_density()
