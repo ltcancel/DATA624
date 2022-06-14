@@ -12,26 +12,71 @@ output:
     toc_depth: 2
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r warning=FALSE}
+#libraries
+library(readxl)
 ```
 
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r cars}
-summary(cars)
+```{r}
+df <- read_excel("data.xls")
+head(df)
 ```
 
-## Including Plots
+```{r}
+summary(df)
+```
+Boxplots: Var02 has the most outliers
+```{r warning=FALSE, fig.width=10, fig.height=8}
+p1 <- ggplot(df, aes(category, Var01)) +
+  geom_boxplot()
+p2 <- ggplot(df, aes(category, Var02)) +
+  geom_boxplot()
+p3 <- ggplot(df, aes(category, Var03)) +
+  geom_boxplot()
+p4 <- ggplot(df, aes(category, Var05)) +
+  geom_boxplot()
+p5 <- ggplot(df, aes(category, Var07)) +
+  geom_boxplot()
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+p1+p2+p3+p4+p5+
+  plot_layout(ncol = 3)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r warning=FALSE, fig.width=10, fig.height=7}
+p1 <- ggplot(df, aes(Var01, color=category)) +
+  geom_density()
+p2 <- ggplot(df, aes(Var02, color=category)) +
+  geom_density()
+p3 <- ggplot(df, aes(Var03, color=category)) +
+  geom_density()
+p4 <- ggplot(df, aes(Var05, color=category)) +
+  geom_density()
+p5 <- ggplot(df, aes(Var07, color=category)) +
+  geom_density()
+
+p1+p2+p3+p4+p5+
+  plot_layout(ncol = 2)
+```
+
+The NAs make up less than 10% of all values in the data. 
+```{r}
+aggr(df, col=c('navyblue','yellow'),
+     numbers=TRUE, sortVars=TRUE,
+     labels=names(df), cex.axis=.7,
+     gap=3, ylab=c("Missing data","Pattern"))
+```
+
+
+
+
+
+
+
+
+
+
+
+
