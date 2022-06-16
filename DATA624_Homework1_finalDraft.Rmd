@@ -79,21 +79,18 @@ frequency(gas)
 
 ### c. Use `which.max()` to spot the outlier in the `gold` series. Which observation was it?
 
-The first maximum value in the `gold` series is located in the `r which.max(gas)` position with a value of `r gas[which.max(gas)]`.
+The outlier for the `gold` series is observation number 770, with the value of 593.7.
 
-```{r maxgas, include=FALSE}
+```{r maxgas, include=TRUE}
 #calling which.max() function
 which.max(gold)
 #printing maximum value
 gold[which.max(gold)]
 ```
 
-**Alternative to (c)**
-
-
 ## HA 2.3
 
-Download some monthly Australian retail data from the book website. These represent retail sales in various categories for different Australian states, and are stored in a MS-Excel file.
+### Download some monthly Australian retail data from the book website. These represent retail sales in various categories for different Australian states, and are stored in a MS-Excel file.
 
 ### a. You can read the data into R with the following script:
 ```{r}
@@ -108,7 +105,6 @@ myts <- ts(retaildata[,"A3349873A"],
 
 myts2 <- ts(retaildata[,"A3349791W"],
             frequency=12, start=c(1982,4))
-myts2
 ```
 
 #### Explore your chosen retail time series using the following functions:
@@ -117,52 +113,36 @@ myts2
 
 #### Can you spot any seasonality, cyclicity and trend? What do you learn about the series?
 
-The first plot using autoplot() shows some seasonality for each year telling us that the price spikes at different points. There is also an upward trend showing that the price of gold continues to increase overtime. The length between the min and max for each of the seasonal spike grows longer each year telling us that the price difference between the minimum and maximum price spreads out more over time. 
+The column selected is the retail of "other recreational goods" in New South Wales. The first plot using `autoplot()` shows some seasonality for each year telling us that the price spikes at certain points. There is also an upward trend showing that the sales continues to increase overtime and the magnitude of the spikes grows steadily.
+
 ```{r autoplot-myts2}
 #time series qutoplot
 autoplot(myts2)
 ```
 
-The seasonal plot below using ggseasonlot() gives us more clarity on when the seasonality takes place. Each year has a spike in December with the max prices increasing each year. We can take a guess as to why December is the month that spikes since this is when holiday shopping takes place. 
+The seasonal plot below using `ggseasonlot()` gives us more clarity on when the seasonality takes place. Each year has a spike in December with the max prices increasing each year. We can take a guess as to why December is the month that spikes since this is when holiday shopping takes place as well as summer in the southern hemisphere, when more recreation may take place.
 
 ```{r seasonplot-myts2}
 #time series seasonal plot
 ggseasonplot(myts2)
 ```
 
-The subseries plot confirms the seasonality shown in the previous plots with December being the seasonal month. This plot creates a better visualization for a couple of details better than the previous plots. The difference between the minimum and maximum over the years is clearer. The minimum has a minor increase in december but the maximum has a dramatic increase when compared to the other months. The mean also has a big increase in December but then levels out during the spring and summer months.
+The subseries plot confirms the seasonality shown in the previous plots with December being the seasonal month. This plot creates a better visualization for a couple of details better than the previous plots. The difference between the minimum and maximum over the years is clearer. The minimum has a minor increase in December but the maximum has a dramatic increase when compared to the other months. The mean also has a big increase in December but then levels out during the Australian fall and winter.
 
 ```{r subseriesplot}
 #time series sub series plot
 ggsubseriesplot(myts2)
 ```
 
-The lag plot shows strong positive correlation for all months in lag 12.
-
-**Alternative description**
-The scatterplots shows the lagged values of the time series. Each graph shows $y_t$ plotted against $y_{t-k}$ for different values of $k$. The relationship is strongly positive at lag 16, reflecting the strong seasonality in the data.
-
-```{r lagplot, fig.width=15}
-#time series lag plot
-gglagplot(myts2)
-```
-
-The ACF plot supports the lag plot by showing a high autocorrelation coefficient for lag 12. There are also no negative correlations which was not as clear in the subseries plot. They are also all significantly different from zero. 
-
-**Additional description**
-The `Acf` graph shows the autocorrelation coefficients, `correlogram`, of the retail sales in various categories for different Australian states base on `A3349791W` time series. The dashed blue lines indicate whether the correlations are significantly different from zero. 
-
-```{r ACF}
-#time series ACF
-ggAcf(myts2)
-
-```
-
 ## HA 6.2
+
 The plastics data set consists of the monthly sales (in thousands) of product A for a plastics manufacturer for five years.
 
 ### a. Plot the time series of sales of product A. Can you identify seasonal fluctuations and/or a trend-cycle?
 
+The time plot automatically shows the monthly sales (in thousands) of product A for a plastics manufacturer for five years and reveals: (1) there is an increasing trend; (2) there is a mild seasonal pattern that increases in size as the level of the series increases; and (3) the sudden drop at the year end/starting year is due to government subsidies for pollution control, such as [deposit-refund systems](https://media.rff.org/archive/files/sharepoint/WorkImages/Download/RFF-DP-11-47.pdf).
+
+The season plot shows a seasonal pattern occurs from February to December for each year (five years) time series. 
 
 ```{r fig.width=10, fig.height=15}
 #autoplot(), ggseasonplot(), ggsubseriesplot(), gglagplot(), ggAcf()
@@ -173,12 +153,6 @@ p4 <- gglagplot(plastics)
 p5 <- ggAcf(plastics)
 grid.arrange(p1,p2,p3,p5,p4, ncol=1)
 ```
-
-**Additional description**
-The time plot automatically shows the monthly sales (in thousands) of product A for a plastics manufacturer for five years and reveals: (1) there is an increasing trend; (2) there is a mild seasonal pattern that increases in size as the level of the series increases; and (3) the sudden drop at the year end/starting year is due to government subsidies for pollution control, such as [deposit-refund systems](https://media.rff.org/archive/files/sharepoint/WorkImages/Download/RFF-DP-11-47.pdf).
-
-The season plot shows a seasonal pattern occurs from February to December for each year (five years) time series. 
-
 
 ### b. Use a classical multiplicative decomposition to calculate the trend-cycle and seasonal indices.
 
@@ -196,7 +170,6 @@ The "Data" and "Seasonal" sections of the Decomposition shows similar results to
 
 **Additional/Alternative description**
 The multiplicative decomposition plot supports Part (a) interpretation of a seasonal pattern. The seasonal pattern is unchanging, the remainder component has a lot of large values, and has an increasing trend with some missing observations from the beginning and the end of the data set.
-
 
 ### d. Compute and plot the seasonally adjusted data.
 
@@ -221,10 +194,6 @@ autoplot(plastics, series = "Data") +
   ggtitle("Multiplicative Decomposition of Plastics Manufacturer Sales Data")
 ```
 
-
-
-
-
 ### e. Change one observation to be an outlier (e.g., add 500 to one observation), and recompute the seasonally adjusted data. What is the effect of the outlier?
 The outlier was applied to the first observation in the plastics data so the chart changed only in year 1. The outlier being in the beginning of the data had no impact on the rest of the plot.
 ```{r warning=FALSE}
@@ -239,7 +208,6 @@ autoplot(plastics2, series = "Data") +
   autolayer(trendcycle(decomp_plastics2), series = "Trend") +
   autolayer(seasadj(decomp_plastics2), series = "Seasonally Adjusted")
 ```
-
 
 **Additional/Alternative Plots**
 
@@ -267,6 +235,7 @@ The effects of the outlier is noticeable and still supports Part (a) interpretat
 ### f. Does it make any difference if the outlier is near the end rather than in the middle of the time series?
 
 The middle outlier has a greater impact on the Seasonally adjusted line than the end outlier when compared to the original plot. When the last observation is the outlier the Data and Seasonally Adjusted lines trend upward and all other areas on the chart are not impacted. When a middle observation is the outlier we see a different seasonally adusted line when compared to the original chart. The downward and upward spikes around the outlier are sharper on the middle outlier chart while the original chart has subtle changes with a fairly even upward trend. 
+
 ```{r fig.height=10, warning=FALSE}
 plastics_mid <- plastics
 plastics_end <- plastics  
@@ -453,10 +422,6 @@ for (i in col_names){
 grid.arrange(grobs=plot_list, ncol=4)
 ```
 
-
-
-## KJ 635
-
 ## HA 7.1 - Exponential Smoothing
 
 ### Consider the pigs series — the number of pigs slaughtered in Victoria each month.
@@ -522,6 +487,7 @@ ses(pigs, h=4)$mean[1]+(y_hat*s)
 
 ```
 
+# Week 3
 
 ## HA 8.1
 
