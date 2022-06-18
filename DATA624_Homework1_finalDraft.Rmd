@@ -57,8 +57,6 @@ gas          | Australian monthly gas production: 1956-1995 | Time series data |
 
 The `help` function may provide package code examples and hyperlink to additional research documentation. 
 
-
-
 ### a. Use `autoplot()` to plot each of these in separate plots.
 
 ```{r fig.height=15, fig.width=10}
@@ -78,47 +76,21 @@ frequency(gold)
 frequency(woolyrnq)
 frequency(gas)
 ```
-**Alternative to (b)**
-
-b. What is the frequency of each series? Hint: apply the `frequency ( )` function.
-
-```{r freqgold, echo=FALSE}
-paste0("The frequency for the gold time series is: ", frequency(gold), "  - where the data represents an ANNUAL observations.")
-```
-
-```{r freqwool, echo=FALSE}
-paste0("The frequency for wool production time series is: ", frequency(woolyrnq), " - where the data represents QUARTERLY observations.")
-```
-
-```{r freqgas, echo=FALSE}
-paste0("The frequency for gas production time series is: ",  frequency(gas), " - where the data represents MONTHLY observations.")
-```
-
-
-
-
-
-
 
 ### c. Use `which.max()` to spot the outlier in the `gold` series. Which observation was it?
- 
+
 The outlier for the `gold` series is observation number 770, with the value of 593.7.
 
-```{r maxgas, include=FALSE}
+```{r maxgas, include=TRUE}
 #calling which.max() function
 which.max(gold)
 #printing maximum value
 gold[which.max(gold)]
 ```
 
-**Alternative to (c)**
-The first maximum value in the `gold` series is located in the `r which.max(gas)` position with a value of `r gas[which.max(gas)]`.
-
-
-
 ## HA 2.3
 
-Download some monthly Australian retail data from the book website. These represent retail sales in various categories for different Australian states, and are stored in a MS-Excel file.
+### Download some monthly Australian retail data from the book website. These represent retail sales in various categories for different Australian states, and are stored in a MS-Excel file.
 
 ### a. You can read the data into R with the following script:
 ```{r}
@@ -133,7 +105,6 @@ myts <- ts(retaildata[,"A3349873A"],
 
 myts2 <- ts(retaildata[,"A3349791W"],
             frequency=12, start=c(1982,4))
-myts2
 ```
 
 #### Explore your chosen retail time series using the following functions:
@@ -142,52 +113,36 @@ myts2
 
 #### Can you spot any seasonality, cyclicity and trend? What do you learn about the series?
 
-The first plot using autoplot() shows some seasonality for each year telling us that the price spikes at different points. There is also an upward trend showing that the price of gold continues to increase overtime. The length between the min and max for each of the seasonal spike grows longer each year telling us that the price difference between the minimum and maximum price spreads out more over time. 
+The column selected is the retail of "other recreational goods" in New South Wales. The first plot using `autoplot()` shows some seasonality for each year telling us that the price spikes at certain points. There is also an upward trend showing that the sales continues to increase overtime and the magnitude of the spikes grows steadily.
+
 ```{r autoplot-myts2}
 #time series qutoplot
 autoplot(myts2)
 ```
 
-The seasonal plot below using ggseasonlot() gives us more clarity on when the seasonality takes place. Each year has a spike in December with the max prices increasing each year. We can take a guess as to why December is the month that spikes since this is when holiday shopping takes place. 
+The seasonal plot below using `ggseasonlot()` gives us more clarity on when the seasonality takes place. Each year has a spike in December with the max prices increasing each year. We can take a guess as to why December is the month that spikes since this is when holiday shopping takes place as well as summer in the southern hemisphere, when more recreation may take place.
 
 ```{r seasonplot-myts2}
 #time series seasonal plot
 ggseasonplot(myts2)
 ```
 
-The subseries plot confirms the seasonality shown in the previous plots with December being the seasonal month. This plot creates a better visualization for a couple of details better than the previous plots. The difference between the minimum and maximum over the years is clearer. The minimum has a minor increase in december but the maximum has a dramatic increase when compared to the other months. The mean also has a big increase in December but then levels out during the spring and summer months.
+The subseries plot confirms the seasonality shown in the previous plots with December being the seasonal month. This plot creates a better visualization for a couple of details better than the previous plots. The difference between the minimum and maximum over the years is clearer. The minimum has a minor increase in December but the maximum has a dramatic increase when compared to the other months. The mean also has a big increase in December but then levels out during the Australian fall and winter.
 
 ```{r subseriesplot}
 #time series sub series plot
 ggsubseriesplot(myts2)
 ```
 
-The lag plot shows strong positive correlation for all months in lag 12.
-
-**Alternative description**
-The scatterplots shows the lagged values of the time series. Each graph shows $y_t$ plotted against $y_{t-k}$ for different values of $k$. The relationship is strongly positive at lag 16, reflecting the strong seasonality in the data.
-
-```{r lagplot, fig.width=15}
-#time series lag plot
-gglagplot(myts2)
-```
-
-The ACF plot supports the lag plot by showing a high autocorrelation coefficient for lag 12. There are also no negative correlations which was not as clear in the subseries plot. They are also all significantly different from zero. 
-
-**Additional description**
-The `Acf` graph shows the autocorrelation coefficients, `correlogram`, of the retail sales in various categories for different Australian states base on `A3349791W` time series. The dashed blue lines indicate whether the correlations are significantly different from zero. 
-
-```{r ACF}
-#time series ACF
-ggAcf(myts2)
-
-```
-
 ## HA 6.2
+
 The plastics data set consists of the monthly sales (in thousands) of product A for a plastics manufacturer for five years.
 
 ### a. Plot the time series of sales of product A. Can you identify seasonal fluctuations and/or a trend-cycle?
 
+The time plot automatically shows the monthly sales (in thousands) of product A for a plastics manufacturer for five years and reveals: (1) there is an increasing trend; (2) there is a mild seasonal pattern that increases in size as the level of the series increases; and (3) the sudden drop at the year end/starting year is due to government subsidies for pollution control, such as [deposit-refund systems](https://media.rff.org/archive/files/sharepoint/WorkImages/Download/RFF-DP-11-47.pdf).
+
+The season plot shows a seasonal pattern occurs from February to December for each year (five years) time series. 
 
 ```{r fig.width=10, fig.height=15}
 #autoplot(), ggseasonplot(), ggsubseriesplot(), gglagplot(), ggAcf()
@@ -198,12 +153,6 @@ p4 <- gglagplot(plastics)
 p5 <- ggAcf(plastics)
 grid.arrange(p1,p2,p3,p5,p4, ncol=1)
 ```
-
-**Additional description**
-The time plot automatically shows the monthly sales (in thousands) of product A for a plastics manufacturer for five years and reveals: (1) there is an increasing trend; (2) there is a mild seasonal pattern that increases in size as the level of the series increases; and (3) the sudden drop at the year end/starting year is due to government subsidies for pollution control, such as [deposit-refund systems](https://media.rff.org/archive/files/sharepoint/WorkImages/Download/RFF-DP-11-47.pdf).
-
-The season plot shows a seasonal pattern occurs from February to December for each year (five years) time series. 
-
 
 ### b. Use a classical multiplicative decomposition to calculate the trend-cycle and seasonal indices.
 
@@ -221,7 +170,6 @@ The "Data" and "Seasonal" sections of the Decomposition shows similar results to
 
 **Additional/Alternative description**
 The multiplicative decomposition plot supports Part (a) interpretation of a seasonal pattern. The seasonal pattern is unchanging, the remainder component has a lot of large values, and has an increasing trend with some missing observations from the beginning and the end of the data set.
-
 
 ### d. Compute and plot the seasonally adjusted data.
 
@@ -246,10 +194,6 @@ autoplot(plastics, series = "Data") +
   ggtitle("Multiplicative Decomposition of Plastics Manufacturer Sales Data")
 ```
 
-
-
-
-
 ### e. Change one observation to be an outlier (e.g., add 500 to one observation), and recompute the seasonally adjusted data. What is the effect of the outlier?
 The outlier was applied to the first observation in the plastics data so the chart changed only in year 1. The outlier being in the beginning of the data had no impact on the rest of the plot.
 ```{r warning=FALSE}
@@ -264,7 +208,6 @@ autoplot(plastics2, series = "Data") +
   autolayer(trendcycle(decomp_plastics2), series = "Trend") +
   autolayer(seasadj(decomp_plastics2), series = "Seasonally Adjusted")
 ```
-
 
 **Additional/Alternative Plots**
 
@@ -292,6 +235,7 @@ The effects of the outlier is noticeable and still supports Part (a) interpretat
 ### f. Does it make any difference if the outlier is near the end rather than in the middle of the time series?
 
 The middle outlier has a greater impact on the Seasonally adjusted line than the end outlier when compared to the original plot. When the last observation is the outlier the Data and Seasonally Adjusted lines trend upward and all other areas on the chart are not impacted. When a middle observation is the outlier we see a different seasonally adusted line when compared to the original chart. The downward and upward spikes around the outlier are sharper on the middle outlier chart while the original chart has subtle changes with a fairly even upward trend. 
+
 ```{r fig.height=10, warning=FALSE}
 plastics_mid <- plastics
 plastics_end <- plastics  
@@ -393,18 +337,18 @@ corrplot::corrplot(cor(Glass[c("RI", "Na", "Mg", "Al", "Si", "K", "Ca", "Ba", "F
 
 ### b. Do there appear to be any outliers in the data? Are any predictors skewed?
 
-The boxplots help us see the outliers for each type for each predictor. Type 2 has outliers for the Ri, Mg, and Ca predictors. The Ba predictor has more data for Type 7 with the rest of the types being scattered. The mean for Si is consistent between all types. When we explore the distribution plots we see that Si is closest to a normal distribution. K, Ba, and Fa are left skewed and Mg is right skewed. The other predictors are slightly skewed.
+The boxplots help us see the outliers for each type for each predictor. Type 2 has outliers for the Ri, Mg, and Ca predictors. The Ba predictor has more data for Type 7 with the rest of the types being scattered. The mean for Si is consistent between all types. When we explore the distribution plots we see that Si is closest to a normal distribution. K, Ba, and Fa are left skewed and Mg is right skewed. The other predictors are slightly skewed.  
+
+Looking at the density plots, it does appear that Mg, K, Ba, and Fe are especially more skewed than their counterparts. Mg follows a dramatic left skew, while Ba, K, and Fe follow a dramatic right skew. RI and Ca follow have similar distributions of right skews, and Na and Si seem to be the most normal, with Si following a more normal distribution. Al has distributions all over, but seems to follow a slight right skew.
 
 ### c. Are there any relevant transformations of one or more predictors that might improve the classification model?
 
-Experimenting with BoxCox transformations for Ba and Fe since both predictors are heavily skewed to the left
-```{r}
-
-```
+Experimenting with BoxCox transformations for Ba and Fe since both predictors are heavily skewed to the left. The skewed variables could improve the classification model. This is because Box Cox transformation is an efficient way of an optimal transformation
 
 ## KJ 3.2
 
 The soybean data can also be found at the UC Irvine Machine Learning Repository. Data were collected to predict disease in 683 soybeans. The 35 predictors are mostly categorical and include information on the environmental conditions (e.g., temperature, precipitation) and plant conditions (e.g., left spots, mold growth). The outcome labels consist of 19 distinct classes. The data can be loaded via:
+
 ```{r fig.height=10, fig.width=10}
 library(mlbench)
 data(Soybean)
@@ -435,11 +379,12 @@ grid.arrange(grobs=plot_list, ncol=4)
 
 ### b. Roughly 18 % of the data are missing. Are there particular predictors that are more likely to be missing? Is the pattern of missing data related to the classes?
 
-Of the 18% of missing data, 8% come from 19 out of 36 columns. 
+Of the 18% of missing data, 8% come from 19 out of 36 columns: sever, seed.tmt, germ, leaf.halo, leaf.marg, leaf.size, leaf.shread, leaf.mid, stem.cankers, canker.lesion, ext.decay, int.discolor, fruit.pods, fruit.spots, and roots all seem to have data that's more likely to be missing (more than the smallest value).
+
 ```{r fig.width=20,fig.height=10, message=FALSE}
-#library(mice)
-#library(VIM)
-#md.pattern(Soybean)
+library(mice)
+library(VIM)
+md.pattern(Soybean)
 
 aggr(Soybean, col=c('navyblue','yellow'),
      numbers=TRUE, sortVars=TRUE,
@@ -447,10 +392,9 @@ aggr(Soybean, col=c('navyblue','yellow'),
      gap=3, ylab=c("Missing data","Pattern"))
 ```
 
-
 ### c. Develop a strategy for handling missing data, either by eliminating predictors or imputation.
-
 I chose to impute the data instead of eliminating predictors altogether. Predictors with NA values still had enough data where I didn't feel that complete removal was necessary. Below is a comparison of the summary for the original dataset and the imputed dataset. After the imputation, the numbers do not differ too much but we would need to continue this analysis to see how much the imputation impacted the dataset. 
+
 ```{r}
 impute_soybean <- parlmice(Soybean, maxit = 5, m = 1, printFlag = FALSE, seed = 500, cluster.seed = 500)
 Soybean_2 <- complete(impute_soybean,1)
@@ -462,6 +406,7 @@ summary(Soybean)
 #imputed soybean data
 summary(Soybean_2)
 ```
+
 ```{r fig.height=15, fig.width=10}
 col_names <- colnames(Soybean_2[-1])
 
@@ -478,27 +423,16 @@ for (i in col_names){
 grid.arrange(grobs=plot_list, ncol=4)
 ```
 
-
-## KJ 635
-
-## HA 7.1 - Exponential Smoothing
+## HA 7.1
 
 ### Consider the pigs series — the number of pigs slaughtered in Victoria each month.
 
-View the data set
-```{r pigsdataset}
-pigs
-```
-
+The Simple Exponential Method (“SES”) method is suitable to forecast time series with no clear trend or seasonality. The Pigs data does not have a clear pattern and therefore we will use SES.
 
 ```{r}
 help(pigs)
 pigs %>% autoplot()
 ```
-
-**Alternative Description**
-The Simple Exponential Method (“SES”) method is suitable to forecast time series with no clear trend or seasonality. The Pigs data does not have a clear pattern and therefore we will use SES.
-
 
 ### a. Use the `ses()` function in R to find the optimal values of \(\alpha\) and \(l_0\) and generate forecasts for the next four months.
 
@@ -517,7 +451,7 @@ fc %>%
 summary(fc)
 ```
 
-#### b. Compute a 95% prediction interval for the first forecast using \(\hat{y}\pm 1.96s\) where \(s\) is the standard deviation of the residuals. Compare your interval with the interval produced by R.
+### b. Compute a 95% prediction interval for the first forecast using \(\hat{y}\pm 1.96s\) where \(s\) is the standard deviation of the residuals. Compare your interval with the interval produced by R.
 
 From chapter 3.5. Prediction intervals are calculated as $\hat{y}_T+h|T \pm c \hat{\sigma}_h$. The multiplier for 95% interval is 1.96 and the residuals are also equal to the RMSE. Using the SES model formula from part a, the $\hat{y} values are stored in a vector as are the residuals. Then, the values are subbed in for the formula. 
 
@@ -533,34 +467,191 @@ ses(pigs, h=4)$mean[1]+(y_hat*s)
 ## HA 7.2 
 
 #### Write your own function to implement simple exponential smoothing. The function should take arguments y (the time series), alpha (the smoothing parameter α) and level (the initial level ℓ0). It should return the forecast of the next observation in the series. Does it give the same forecast as ses()?
+Let's create our own version of the $ses$() function using the formula for weighted average form
+
+$\hat{y}_{t+1|t} = \alpha y_t + (1 - \alpha) \hat{y}_{t|t-1}$
+
 
 ```{r}
 
+myses <- function(y, alpha, level) {
+  
+  # set initial estimated y with level
+  y_hat <- level
+  
+  # traverse elements of series
+  for(i in 1:length(y)) {
+    
+    # calculate the next estimated y
+    y_hat <- alpha * y[i] + (1 - alpha) * y_hat
+    
+  }
+  
+  return(y_hat)
+  
+}
+
 ```
+
+Now let's see if the forecast of the next observation in the series returned by our $myses$() function matches the value returned by the $ses$() function.
+
+```{r}
+
+optimal_alpha <- fc$model$par[1]
+optimal_l0    <- fc$model$par[2]
+
+print(optimal_alpha)
+print(optimal_l0)
+```
+
+```{r}
+
+
+fc_myses <- myses(y = pigs, alpha = optimal_alpha, level = optimal_l0)
+
+fc_ses <- ses(y = pigs, h = 4)
+
+print(fc_myses)
+
+print(fc_ses$mean[1])
+
+```
+
+When comparing the forecast results for the next observation we can see that the two calculation methods yield very close results.
+
+Calculation Method | Forecast value
+-------------------|-----------------------
+myses()   | `r paste0(round(fc_myses,2))`
+ses()      | `r paste0(round(fc_ses$mean[1],2))`
 
 
 ## HA 7.3
-#### Modify your function from the previous exercise to return the sum of squared errors rather than the forecast of the next observation. Then use the optim() function to find the optimal values of α and ℓ0. Do you get the same values as the ses() function?
+
+### Modify your function from the previous exercise to return the sum of squared errors rather than the forecast of the next observation. Then use the optim() function to find the optimal values of α and ℓ0. Do you get the same values as the ses() function?
+
+Based on the $myses$() function, create a function to return the Sum of Squared Errors (SSE).
 
 ```{r}
 
+mySSE <- function( pars = c(alpha, level), y ) {
+  
+  # unpack pars array to get alpha and level values
+  alpha <- pars[1]
+  level <- pars[2]
+  
+  # set initial estimated y with level
+  y_hat <- level
+  
+  err   <- 0
+  
+  SSE   <- 0
+
+  # traverse elements of series
+  for(i in 1:length(y)) {
+    
+    # calculate error by subtracting estimated y from actual y
+    err <- y[i] - y_hat
+    
+    # sum up and accumulate squared errors
+    SSE <- SSE + err ^ 2
+    
+    # calculate the next estimated y
+    y_hat <- alpha * y[i] + (1 - alpha) * y_hat
+
+  }
+  
+  return(SSE)
+  
+}
+  
 ```
 
 
-## HA 8.1
-#### Figure 8.31 shows the ACFs for 36 random numbers, 360 random numbers and 1,000 random numbers.
+Let's use our $mySSE$() function to calculate the optimum values and compare them to the values from R's $ses$() function.
 
-#### a. Explain the differences among these figures. Do they all indicate that the data are white noise?
+```{r}
 
-#### b. Why are the critical values at different distances from the mean of zero? Why are the autocorrelations different in each figure when they each refer to white noise?
+result_mySSE <- optim( par = c(0.5, pigs[1]), y = pigs, fn = mySSE )
 
-## HA 8.2
-#### A classic example of a non-stationary series is the daily closing IBM stock price series (data set ibmclose). Use R to plot the daily closing prices for IBM stock and the ACF and PACF. Explain how each plot shows that the series is non-stationary and should be differenced.
+
+mySSE_optimal_alpha <- result_mySSE$par[1]
+mySSE_optimal_l0    <- result_mySSE$par[2]
+
+ses_optimal_alpha   <- fc_ses$model$par[1]
+ses_optimal_l0      <- fc_ses$model$par[2]
+
+```
+
+When comparing the results of both methods, we see that the values are very close. The Optimal $\alpha$ for the $mySSE$() function is slightly bigger than that of the $ses$() function. While the Optimal $l_0$ for the $mySSE$() function is slightly smaller than that of the $ses$() function.
+
+
+Calculation Method | Optimal $\alpha$ | Optimal $l_0$
+-------------------|------------------|---------------
+$mySSE$() function | `r paste0(round(mySSE_optimal_alpha,7))`   | `r paste0(round(mySSE_optimal_l0,2))`
+R $ses$() function | `r paste0(round(ses_optimal_alpha,7))` | `r paste0(round(ses_optimal_l0,2))`
+# Week 3
+
+## HA 8.1 
+
+### Figure 8.31 shows the ACFs for 36 random numbers, 360 random numbers and 1,000 random numbers.
+
+```{r}
+url_img <- "https://otexts.com/fpp2/fpp_files/figure-html/wnacfplus-1.png"
+```
+
+![](`r url_img`)
+
+### a. Explain the differences among these figures. Do they all indicate that the data are white noise?
+
+All the figures do appear to indicate the data are white noise. This is because the autocorrelation is close to zero and mostly within the 95% bounds indicated by the blue dotted lines. In series x2, there are a few spikes that exceed the bounds. Because they are not extensive, do not excessively exceed the limit, and there is no obvious pattern they can still be considered all white noise. 
+
+### b. Why are the critical values at different distances from the mean of zero? Why are the autocorrelations different in each figure when they each refer to white noise?
+
+The critical values and the 95% bounds are dependent on the length of the time series $T$. As $T$ increases, the boundaries are narrowed. Likewise, from chapter 2.8 and 2.9, the calculations for autocorrelation coefficients ($r_k$) are dependent on the length of the time series, and as the time series grows the coefficients will decrease. 
+
+#### Series x1 Bounds
+```{r}
+c(2, -2) / sqrt(36)
+```
+
+#### Series x2 Bounds
+```{r}
+c(2, -2) / sqrt(360)
+```
+
+#### Series x3 Bounds
+```{r}
+c(2, -2) / sqrt(1000)
+```
+
+## HA 8.2 
+
+### A classic example of a non-stationary series is the daily closing IBM stock price series (data set ibmclose). Use R to plot the daily closing prices for IBM stock and the ACF and PACF. Explain how each plot shows that the series is non-stationary and should be differenced.
+
+- Stationary data will not show changes for seasonality, levels, or changes in variance. In the trend plot for the raw data, there are clear changes in levels across the time series, clearly ruling out these data as stationary.
+- The ACF plot confirms this by the spikes gradually reducing to zero. Stationary data will quickly drop to zero.
+- The PACF plot, while appears that most of the values are within the bounds the first value is extremely high. In fact, it is identical to the first value in the ACF. This is because of how the PACF is calculated the first value is always the same as the first value of the ACF. 
+
+### Not Differenced Plots
+
+```{r}
+library(fma)
+
+ibmclose %>% ggtsdisplay(main="")
+```
+
+Comparatively, with these data now differenced. The concerns mentioned above are rectified for the most part. Additional analysis should be done to verify that the values in the ACF and PACF exeeding the bounds are not excessive. 
+
+### Differenced Plots
+```{r}
+ibmclose %>% diff() %>% ggtsdisplay(main="")
+```
 
 ## HA 8.6
-#### Use R to simulate and plot some data from simple ARIMA models.
 
-#### a. Use the following R code to generate data from an AR(1) model with ϕ1=0.6 and σ2=1. The process starts with y1 = 0.
+### Use R to simulate and plot some data from simple ARIMA models.
+
+### a. Use the following R code to generate data from an AR(1) model with  \(\theta_1 =0.6\) and \(\sigma^2 = 1\). The process starts with \(y = 0\)
 
 ```{r}
 y <- ts(numeric(100))
@@ -569,18 +660,50 @@ for(i in 2:100)
   y[i] <- 0.6*y[i-1] + e[i]
 ```
 
-#### b. Produce a time plot for the series. How does the plot change as you change ϕ1?
+### b. Produce a time plot for the series. How does the plot change as you change \(\theta_1\)?
 
-#### c. Write your own code to generate data from an MA(1) model with θ1=0.6  and σ2=1.
+```{r}
+sim1 <- ts(e)
+sim1 %>% autoplot()
+```
 
-#### d. Produce a time plot for the series. How does the plot change as you change θ1 ?
+```{r}
+y <- ts(numeric(100))
+e <- rnorm(100)
+for(i in 2:100)
+  y[i] <- 0.1*y[i-1] + e[i]
+```
 
-#### e. Generate data from an ARMA(1,1) model with  
+```{r}
+sim2 <- ts(e)
+sim2 %>% autoplot()
+```
 
+```{r}
+y <- ts(numeric(100))
+e <- rnorm(100)
+for(i in 2:100)
+  y[i] <- 1.0*y[i-1] + e[i]
+```
 
-#### f. Generate data from an AR(2) model with  (Note that these parameters will give a non-stationary series.)
+```{r}
+sim3 <- ts(e)
+sim3 %>% autoplot()
+```
 
-#### g. Graph the latter two series and compare them.
+### c. Write your own code to generate data from an MA(1) model with \(\theta_1 =0.6\) and \(\sigma^2 = 1\)
+
+```{r}
+y <- ts(numeric(100))
+e <- rnorm(100, sd = 1)
+e[1] <- 0
+for(i in 2:100)
+  y[i] <- 0.6*e[i-1] + e[i]
+
+sim_c <- ts(e)
+sim_c %>% autoplot()
+```
+
 
 ## HA 8.8
 
