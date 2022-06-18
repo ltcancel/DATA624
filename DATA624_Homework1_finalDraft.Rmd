@@ -337,18 +337,18 @@ corrplot::corrplot(cor(Glass[c("RI", "Na", "Mg", "Al", "Si", "K", "Ca", "Ba", "F
 
 ### b. Do there appear to be any outliers in the data? Are any predictors skewed?
 
-The boxplots help us see the outliers for each type for each predictor. Type 2 has outliers for the Ri, Mg, and Ca predictors. The Ba predictor has more data for Type 7 with the rest of the types being scattered. The mean for Si is consistent between all types. When we explore the distribution plots we see that Si is closest to a normal distribution. K, Ba, and Fa are left skewed and Mg is right skewed. The other predictors are slightly skewed.
+The boxplots help us see the outliers for each type for each predictor. Type 2 has outliers for the Ri, Mg, and Ca predictors. The Ba predictor has more data for Type 7 with the rest of the types being scattered. The mean for Si is consistent between all types. When we explore the distribution plots we see that Si is closest to a normal distribution. K, Ba, and Fa are left skewed and Mg is right skewed. The other predictors are slightly skewed.  
+
+Looking at the density plots, it does appear that Mg, K, Ba, and Fe are especially more skewed than their counterparts. Mg follows a dramatic left skew, while Ba, K, and Fe follow a dramatic right skew. RI and Ca follow have similar distributions of right skews, and Na and Si seem to be the most normal, with Si following a more normal distribution. Al has distributions all over, but seems to follow a slight right skew.
 
 ### c. Are there any relevant transformations of one or more predictors that might improve the classification model?
 
-Experimenting with BoxCox transformations for Ba and Fe since both predictors are heavily skewed to the left
-```{r}
-
-```
+Experimenting with BoxCox transformations for Ba and Fe since both predictors are heavily skewed to the left. The skewed variables could improve the classification model. This is because Box Cox transformation is an efficient way of an optimal transformation
 
 ## KJ 3.2
 
 The soybean data can also be found at the UC Irvine Machine Learning Repository. Data were collected to predict disease in 683 soybeans. The 35 predictors are mostly categorical and include information on the environmental conditions (e.g., temperature, precipitation) and plant conditions (e.g., left spots, mold growth). The outcome labels consist of 19 distinct classes. The data can be loaded via:
+
 ```{r fig.height=10, fig.width=10}
 library(mlbench)
 data(Soybean)
@@ -379,7 +379,8 @@ grid.arrange(grobs=plot_list, ncol=4)
 
 ### b. Roughly 18 % of the data are missing. Are there particular predictors that are more likely to be missing? Is the pattern of missing data related to the classes?
 
-Of the 18% of missing data, 8% come from 19 out of 36 columns. 
+Of the 18% of missing data, 8% come from 19 out of 36 columns: sever, seed.tmt, germ, leaf.halo, leaf.marg, leaf.size, leaf.shread, leaf.mid, stem.cankers, canker.lesion, ext.decay, int.discolor, fruit.pods, fruit.spots, and roots all seem to have data that's more likely to be missing (more than the smallest value).
+
 ```{r fig.width=20,fig.height=10, message=FALSE}
 library(mice)
 library(VIM)
@@ -391,9 +392,9 @@ aggr(Soybean, col=c('navyblue','yellow'),
      gap=3, ylab=c("Missing data","Pattern"))
 ```
 
-
 ### c. Develop a strategy for handling missing data, either by eliminating predictors or imputation.
 I chose to impute the data instead of eliminating predictors altogether. Predictors with NA values still had enough data where I didn't feel that complete removal was necessary. Below is a comparison of the summary for the original dataset and the imputed dataset. After the imputation, the numbers do not differ too much but we would need to continue this analysis to see how much the imputation impacted the dataset. 
+
 ```{r}
 impute_soybean <- parlmice(Soybean, maxit = 5, m = 1, printFlag = FALSE, seed = 500, cluster.seed = 500)
 Soybean_2 <- complete(impute_soybean,1)
@@ -422,24 +423,16 @@ for (i in col_names){
 grid.arrange(grobs=plot_list, ncol=4)
 ```
 
-## HA 7.1 - Exponential Smoothing
+## HA 7.1
 
 ### Consider the pigs series — the number of pigs slaughtered in Victoria each month.
 
-View the data set
-```{r pigsdataset}
-pigs
-```
-
+The Simple Exponential Method (“SES”) method is suitable to forecast time series with no clear trend or seasonality. The Pigs data does not have a clear pattern and therefore we will use SES.
 
 ```{r}
 help(pigs)
 pigs %>% autoplot()
 ```
-
-**Alternative Description**
-The Simple Exponential Method (“SES”) method is suitable to forecast time series with no clear trend or seasonality. The Pigs data does not have a clear pattern and therefore we will use SES.
-
 
 ### a. Use the `ses()` function in R to find the optimal values of \(\alpha\) and \(l_0\) and generate forecasts for the next four months.
 
@@ -458,7 +451,7 @@ fc %>%
 summary(fc)
 ```
 
-#### b. Compute a 95% prediction interval for the first forecast using \(\hat{y}\pm 1.96s\) where \(s\) is the standard deviation of the residuals. Compare your interval with the interval produced by R.
+### b. Compute a 95% prediction interval for the first forecast using \(\hat{y}\pm 1.96s\) where \(s\) is the standard deviation of the residuals. Compare your interval with the interval produced by R.
 
 From chapter 3.5. Prediction intervals are calculated as $\hat{y}_T+h|T \pm c \hat{\sigma}_h$. The multiplier for 95% interval is 1.96 and the residuals are also equal to the RMSE. Using the SES model formula from part a, the $\hat{y} values are stored in a vector as are the residuals. Then, the values are subbed in for the formula. 
 
@@ -474,26 +467,243 @@ ses(pigs, h=4)$mean[1]+(y_hat*s)
 ## HA 7.2 
 
 #### Write your own function to implement simple exponential smoothing. The function should take arguments y (the time series), alpha (the smoothing parameter α) and level (the initial level ℓ0). It should return the forecast of the next observation in the series. Does it give the same forecast as ses()?
+Let's create our own version of the $ses$() function using the formula for weighted average form
+
+$\hat{y}_{t+1|t} = \alpha y_t + (1 - \alpha) \hat{y}_{t|t-1}$
+
 
 ```{r}
 
+myses <- function(y, alpha, level) {
+  
+  # set initial estimated y with level
+  y_hat <- level
+  
+  # traverse elements of series
+  for(i in 1:length(y)) {
+    
+    # calculate the next estimated y
+    y_hat <- alpha * y[i] + (1 - alpha) * y_hat
+    
+  }
+  
+  return(y_hat)
+  
+}
+
 ```
+
+Now let's see if the forecast of the next observation in the series returned by our $myses$() function matches the value returned by the $ses$() function.
+
+```{r}
+
+optimal_alpha <- fc$model$par[1]
+optimal_l0    <- fc$model$par[2]
+
+print(optimal_alpha)
+print(optimal_l0)
+```
+
+```{r}
+
+
+fc_myses <- myses(y = pigs, alpha = optimal_alpha, level = optimal_l0)
+
+fc_ses <- ses(y = pigs, h = 4)
+
+print(fc_myses)
+
+print(fc_ses$mean[1])
+
+```
+
+When comparing the forecast results for the next observation we can see that the two calculation methods yield very close results.
+
+Calculation Method | Forecast value
+-------------------|-----------------------
+myses()   | `r paste0(round(fc_myses,2))`
+ses()      | `r paste0(round(fc_ses$mean[1],2))`
 
 
 ## HA 7.3
-#### Modify your function from the previous exercise to return the sum of squared errors rather than the forecast of the next observation. Then use the optim() function to find the optimal values of α and ℓ0. Do you get the same values as the ses() function?
+
+### Modify your function from the previous exercise to return the sum of squared errors rather than the forecast of the next observation. Then use the optim() function to find the optimal values of α and ℓ0. Do you get the same values as the ses() function?
+
+Based on the $myses$() function, create a function to return the Sum of Squared Errors (SSE).
 
 ```{r}
 
+mySSE <- function( pars = c(alpha, level), y ) {
+  
+  # unpack pars array to get alpha and level values
+  alpha <- pars[1]
+  level <- pars[2]
+  
+  # set initial estimated y with level
+  y_hat <- level
+  
+  err   <- 0
+  
+  SSE   <- 0
+
+  # traverse elements of series
+  for(i in 1:length(y)) {
+    
+    # calculate error by subtracting estimated y from actual y
+    err <- y[i] - y_hat
+    
+    # sum up and accumulate squared errors
+    SSE <- SSE + err ^ 2
+    
+    # calculate the next estimated y
+    y_hat <- alpha * y[i] + (1 - alpha) * y_hat
+
+  }
+  
+  return(SSE)
+  
+}
+  
 ```
 
+
+Let's use our $mySSE$() function to calculate the optimum values and compare them to the values from R's $ses$() function.
+
+```{r}
+
+result_mySSE <- optim( par = c(0.5, pigs[1]), y = pigs, fn = mySSE )
+
+
+mySSE_optimal_alpha <- result_mySSE$par[1]
+mySSE_optimal_l0    <- result_mySSE$par[2]
+
+ses_optimal_alpha   <- fc_ses$model$par[1]
+ses_optimal_l0      <- fc_ses$model$par[2]
+
+```
+
+When comparing the results of both methods, we see that the values are very close. The Optimal $\alpha$ for the $mySSE$() function is slightly bigger than that of the $ses$() function. While the Optimal $l_0$ for the $mySSE$() function is slightly smaller than that of the $ses$() function.
+
+
+Calculation Method | Optimal $\alpha$ | Optimal $l_0$
+-------------------|------------------|---------------
+$mySSE$() function | `r paste0(round(mySSE_optimal_alpha,7))`   | `r paste0(round(mySSE_optimal_l0,2))`
+R $ses$() function | `r paste0(round(ses_optimal_alpha,7))` | `r paste0(round(ses_optimal_l0,2))`
 # Week 3
 
-## HA 8.1
+## HA 8.1 
 
-## HA 8.2
+### Figure 8.31 shows the ACFs for 36 random numbers, 360 random numbers and 1,000 random numbers.
+
+```{r}
+url_img <- "https://otexts.com/fpp2/fpp_files/figure-html/wnacfplus-1.png"
+```
+
+![](`r url_img`)
+
+### a. Explain the differences among these figures. Do they all indicate that the data are white noise?
+
+All the figures do appear to indicate the data are white noise. This is because the autocorrelation is close to zero and mostly within the 95% bounds indicated by the blue dotted lines. In series x2, there are a few spikes that exceed the bounds. Because they are not extensive, do not excessively exceed the limit, and there is no obvious pattern they can still be considered all white noise. 
+
+### b. Why are the critical values at different distances from the mean of zero? Why are the autocorrelations different in each figure when they each refer to white noise?
+
+The critical values and the 95% bounds are dependent on the length of the time series $T$. As $T$ increases, the boundaries are narrowed. Likewise, from chapter 2.8 and 2.9, the calculations for autocorrelation coefficients ($r_k$) are dependent on the length of the time series, and as the time series grows the coefficients will decrease. 
+
+#### Series x1 Bounds
+```{r}
+c(2, -2) / sqrt(36)
+```
+
+#### Series x2 Bounds
+```{r}
+c(2, -2) / sqrt(360)
+```
+
+#### Series x3 Bounds
+```{r}
+c(2, -2) / sqrt(1000)
+```
+
+## HA 8.2 
+
+### A classic example of a non-stationary series is the daily closing IBM stock price series (data set ibmclose). Use R to plot the daily closing prices for IBM stock and the ACF and PACF. Explain how each plot shows that the series is non-stationary and should be differenced.
+
+- Stationary data will not show changes for seasonality, levels, or changes in variance. In the trend plot for the raw data, there are clear changes in levels across the time series, clearly ruling out these data as stationary.
+- The ACF plot confirms this by the spikes gradually reducing to zero. Stationary data will quickly drop to zero.
+- The PACF plot, while appears that most of the values are within the bounds the first value is extremely high. In fact, it is identical to the first value in the ACF. This is because of how the PACF is calculated the first value is always the same as the first value of the ACF. 
+
+### Not Differenced Plots
+
+```{r}
+library(fma)
+
+ibmclose %>% ggtsdisplay(main="")
+```
+
+Comparatively, with these data now differenced. The concerns mentioned above are rectified for the most part. Additional analysis should be done to verify that the values in the ACF and PACF exeeding the bounds are not excessive. 
+
+### Differenced Plots
+```{r}
+ibmclose %>% diff() %>% ggtsdisplay(main="")
+```
 
 ## HA 8.6
+
+### Use R to simulate and plot some data from simple ARIMA models.
+
+### a. Use the following R code to generate data from an AR(1) model with  \(\theta_1 =0.6\) and \(\sigma^2 = 1\). The process starts with \(y = 0\)
+
+```{r}
+y <- ts(numeric(100))
+e <- rnorm(100)
+for(i in 2:100)
+  y[i] <- 0.6*y[i-1] + e[i]
+```
+
+### b. Produce a time plot for the series. How does the plot change as you change \(\theta_1\)?
+
+```{r}
+sim1 <- ts(e)
+sim1 %>% autoplot()
+```
+
+```{r}
+y <- ts(numeric(100))
+e <- rnorm(100)
+for(i in 2:100)
+  y[i] <- 0.1*y[i-1] + e[i]
+```
+
+```{r}
+sim2 <- ts(e)
+sim2 %>% autoplot()
+```
+
+```{r}
+y <- ts(numeric(100))
+e <- rnorm(100)
+for(i in 2:100)
+  y[i] <- 1.0*y[i-1] + e[i]
+```
+
+```{r}
+sim3 <- ts(e)
+sim3 %>% autoplot()
+```
+
+### c. Write your own code to generate data from an MA(1) model with \(\theta_1 =0.6\) and \(\sigma^2 = 1\)
+
+```{r}
+y <- ts(numeric(100))
+e <- rnorm(100, sd = 1)
+e[1] <- 0
+for(i in 2:100)
+  y[i] <- 0.6*e[i-1] + e[i]
+
+sim_c <- ts(e)
+sim_c %>% autoplot()
+```
+
 
 ## HA 8.8
 
