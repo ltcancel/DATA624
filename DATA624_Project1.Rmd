@@ -18,6 +18,10 @@ library(readxl)
 library(tidyverse)
 library(ggplot2)
 library(patchwork)
+library(fpp2)
+library(caret)
+library(RANN)
+library(VIM)
 ```
 
 # Project Summary
@@ -77,12 +81,14 @@ p1+p2+p3+p4+p5+
 ```
 
 The NAs make up less than 10% of all values in the data. 
+
+
 ```{r}
-aggr(df, col=c('navyblue','yellow'),
-     numbers=TRUE, sortVars=TRUE,
-     labels=names(df), cex.axis=.7,
-     gap=3, ylab=c("Missing data","Pattern"))
+preProcess_missingdata_model <- preProcess(as.data.frame(df), method='knnImpute')
+df <- predict(preProcess_missingdata_model, newdata = df)
+anyNA(df)
 ```
+
 ## Data transformations
 
 Var02 is the most skewed
