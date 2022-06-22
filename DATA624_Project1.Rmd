@@ -3,14 +3,22 @@ title: "Data624 - Project 1"
 author: "Esteban Aramayo, Coffy Andrews-Guo, LeTicia Cancel, Joseph Connolly, Ian Costello"
 date: '2022-06-21'
 output: 
-  word_document:
-    toc: yes
-    toc_depth: '2'
   html_document:
     toc: yes
     toc_float: yes
     toc_depth: 2
+  word_document:
+    toc: yes
+    toc_depth: '2'
 ---
+
+```{r global-options, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE,
+                      message=FALSE,
+                      collapse = FALSE,
+                      comment = "#>" )
+```
+
 
 ```{r warning=FALSE}
 #libraries
@@ -142,12 +150,12 @@ p1+p2+p3+p4+p5+
 ```
 
 ```{r}
-s01 <- data %>% filter(group == "S01")
-s02 <- data %>% filter(group == "S02")
-s03 <- data %>% filter(group == "S03")
-s04 <- data %>% filter(group == "S04")
-s05 <- data %>% filter(group == "S05")
-s06 <- data %>% filter(group == "S06")
+s01 <- df_transformed %>% dplyr::filter(category == "S01")
+s02 <- df_transformed %>% dplyr::filter(category == "S02")
+s03 <- df_transformed %>% dplyr::filter(category == "S03")
+s04 <- df_transformed %>% dplyr::filter(category == "S04")
+s05 <- df_transformed %>% dplyr::filter(category == "S05")
+s06 <- df_transformed %>% dplyr::filter(category == "S06")
 ```
 
 
