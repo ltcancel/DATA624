@@ -371,6 +371,7 @@ fe_b <- ggplot(Glass, aes(x = Type, y = Fe)) +
 ri_b+na_b+mg_b+al_b+si_b+k_b+ca_b+ba_b+fe_b+
   plot_layout(ncol=3)
 ```
+
 ```{r fig.height=10, fig.width=10}
 ri_d <- ggplot(Glass, aes(RI, color=Type)) + geom_density()
 na_d <- ggplot(Glass, aes(Na, color=Type)) + geom_density()
@@ -404,7 +405,7 @@ Experimenting with BoxCox transformations for Ba and Fe since both predictors ar
 ## KJ 3.2
 
 The soybean data can also be found at the UC Irvine Machine Learning Repository. Data were collected to predict disease in 683 soybeans. The 35 predictors are mostly categorical and include information on the environmental conditions (e.g., temperature, precipitation) and plant conditions (e.g., left spots, mold growth). The outcome labels consist of 19 distinct classes. The data can be loaded via:
-```{r}
+```{r fig.height=10, fig.width=10}
 library(mlbench)
 data(Soybean)
 head(Soybean)
@@ -433,13 +434,48 @@ grid.arrange(grobs=plot_list, ncol=4)
 ```
 
 ### b. Roughly 18 % of the data are missing. Are there particular predictors that are more likely to be missing? Is the pattern of missing data related to the classes?
-```{r}
 
+Of the 18% of missing data, 8% come from 19 out of 36 columns. 
+```{r fig.width=20,fig.height=10, message=FALSE}
+#library(mice)
+#library(VIM)
+#md.pattern(Soybean)
+
+aggr(Soybean, col=c('navyblue','yellow'),
+     numbers=TRUE, sortVars=TRUE,
+     labels=names(Soybean), cex.axis=.7,
+     gap=3, ylab=c("Missing data","Pattern"))
 ```
 
 
 ### c. Develop a strategy for handling missing data, either by eliminating predictors or imputation.
+
+I chose to impute the data instead of eliminating predictors altogether. Predictors with NA values still had enough data where I didn't feel that complete removal was necessary. Below is a comparison of the summary for the original dataset and the imputed dataset. After the imputation, the numbers do not differ too much but we would need to continue this analysis to see how much the imputation impacted the dataset. 
 ```{r}
+impute_soybean <- parlmice(Soybean, maxit = 5, m = 1, printFlag = FALSE, seed = 500, cluster.seed = 500)
+Soybean_2 <- complete(impute_soybean,1)
+```
+
+```{r}
+#original Soybean data
+summary(Soybean)
+#imputed soybean data
+summary(Soybean_2)
+```
+```{r fig.height=15, fig.width=10}
+col_names <- colnames(Soybean_2[-1])
+
+plot_list <- list()
+
+for (i in col_names){
+  plot <- ggplot(Soybean_2, aes_string(Soybean_2[,i])) +
+    geom_bar() +
+    xlab(colnames(Soybean_2[i])) 
+  plot_list[[i]] <- plot
+    #print(plot)
+}
+
+grid.arrange(grobs=plot_list, ncol=4)
 ```
 
 
@@ -496,13 +532,55 @@ ses(pigs, h=4)$mean[1]+(y_hat*s)
 
 ## HA 7.2 
 
+#### Write your own function to implement simple exponential smoothing. The function should take arguments y (the time series), alpha (the smoothing parameter α) and level (the initial level ℓ0). It should return the forecast of the next observation in the series. Does it give the same forecast as ses()?
+
+```{r}
+
+```
+
+
 ## HA 7.3
+#### Modify your function from the previous exercise to return the sum of squared errors rather than the forecast of the next observation. Then use the optim() function to find the optimal values of α and ℓ0. Do you get the same values as the ses() function?
+
+```{r}
+
+```
+
 
 ## HA 8.1
+#### Figure 8.31 shows the ACFs for 36 random numbers, 360 random numbers and 1,000 random numbers.
+
+#### a. Explain the differences among these figures. Do they all indicate that the data are white noise?
+
+#### b. Why are the critical values at different distances from the mean of zero? Why are the autocorrelations different in each figure when they each refer to white noise?
 
 ## HA 8.2
+#### A classic example of a non-stationary series is the daily closing IBM stock price series (data set ibmclose). Use R to plot the daily closing prices for IBM stock and the ACF and PACF. Explain how each plot shows that the series is non-stationary and should be differenced.
 
 ## HA 8.6
+#### Use R to simulate and plot some data from simple ARIMA models.
+
+#### a. Use the following R code to generate data from an AR(1) model with ϕ1=0.6 and σ2=1. The process starts with y1 = 0.
+
+```{r}
+y <- ts(numeric(100))
+e <- rnorm(100)
+for(i in 2:100)
+  y[i] <- 0.6*y[i-1] + e[i]
+```
+
+#### b. Produce a time plot for the series. How does the plot change as you change ϕ1?
+
+#### c. Write your own code to generate data from an MA(1) model with θ1=0.6  and σ2=1.
+
+#### d. Produce a time plot for the series. How does the plot change as you change θ1 ?
+
+#### e. Generate data from an ARMA(1,1) model with  
+
+
+#### f. Generate data from an AR(2) model with  (Note that these parameters will give a non-stationary series.)
+
+#### g. Graph the latter two series and compare them.
 
 ## HA 8.8
 

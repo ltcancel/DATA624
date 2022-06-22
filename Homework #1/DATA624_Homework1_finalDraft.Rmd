@@ -1,0 +1,962 @@
+---
+title: "DATA624 Homework 1"
+author: "Esteban Aramayo, Coffy Andrews-Guo, LeTicia Cancel, Joseph Connolly, Ian Costello"
+date: "5/31/2022"
+output:
+  word_document:
+    toc: yes
+    toc_depth: '2'
+  html_document:
+    toc: yes
+    toc_float: yes
+    toc_depth: 2
+---
+
+```{r global-options, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE,
+                      message=FALSE,
+                      collapse = FALSE,
+                      comment = "#>" )
+```
+
+```{r warning=FALSE, error=FALSE, message=FALSE}
+library(ggfortify)
+library(openxlsx)
+library(fpp2)
+library(fma)
+library(gridExtra)
+library(seasonal)
+library(ggplot2)
+library(patchwork)
+library(caret)
+library(grid)
+```
+
+# Week 1
+
+## HA 2.1 
+
+### Use the help function to explore what the series `gold`, `woolyrnq` and `gas` represent.
+
+The `fpp2` forecast package for "Forecasting: Principles and Practice" (2nd Edition) was loaded to explore three time series data library: `gold`, `woolyrnq`, and `gas`. The RStudio IDE `help` function is a comprehensive built-in system providing the following: 
+
+Data Set     | Description       | Format   | Source
+-------------|-------------------|----------|---------
+gold         | Daily morning gold prices in US dollars. 1 January 1985 - 31 March 1989. | Time series data |Not Available
+woolyrnq     | Quarterly production of woollen yarn in Australia: tonnes. Mar 1965 - Sep 1994 | Time series data | Time Series Data Library
+gas          | Australian monthly gas production: 1956-1995 | Time series data | Australian Bureau of Statistics
+
+
+```{r helpgold}
+#help function for each series using question mark "??"
+??gold
+```
+
+```{r helpwoolyrnq}
+#help function for each series using question mark "??"
+??woolyrnq
+```
+
+```{r helpgas}
+#help function for each series using question mark "??"
+??gas
+```
+
+The `help` function may provide package code examples and hyperlink to additional research documentation. 
+
+### a. Use `autoplot()` to plot each of these in separate plots.
+
+```{r fig.height=15, fig.width=10}
+#autoplots of each series
+grid.arrange(autoplot(gold),autoplot(woolyrnq),autoplot(gas))
+```
+
+### b. What is the frequency of each series? Hint: apply the `frequency()` function.
+
+- `gold` has a frequency of 1, meaning it is annual.
+- `Woolyrng` has a frequency of 4, meaning it is quarterly. 
+- `gas` has a frequency of 12, meaning it is monthly.
+
+```{r}
+#frequency of each series
+frequency(gold)
+frequency(woolyrnq)
+frequency(gas)
+```
+
+### c. Use `which.max()` to spot the outlier in the `gold` series. Which observation was it?
+
+The outlier for the `gold` series is observation number 770, with the value of 593.7.
+
+```{r maxgas, include=TRUE}
+#calling which.max() function
+which.max(gold)
+#printing maximum value
+gold[which.max(gold)]
+```
+
+## HA 2.3
+
+### Download some monthly Australian retail data from the book website. These represent retail sales in various categories for different Australian states, and are stored in a MS-Excel file.
+
+### a. You can read the data into R with the following script:
+```{r}
+retaildata <- read.xlsx("https://otexts.com/fpp2/extrafiles/retail.xlsx",startRow = 2)
+```
+
+### b. Select one of the time series as follows (but replace the column name with your own chosen column):
+```{r myts2}
+myts <- ts(retaildata[,"A3349873A"],
+  frequency=12, start=c(1982,4))
+#myts  #code is silent because it represents an example - see "myts2"  
+
+myts2 <- ts(retaildata[,"A3349791W"],
+            frequency=12, start=c(1982,4))
+```
+
+#### Explore your chosen retail time series using the following functions:
+
+`autoplot()`, `ggseasonplot()`, `ggsubseriesplot()`, `gglagplot()`, `ggAcf()`
+
+#### Can you spot any seasonality, cyclicity and trend? What do you learn about the series?
+
+The column selected is the retail of "other recreational goods" in New South Wales. The first plot using `autoplot()` shows some seasonality for each year telling us that the price spikes at certain points. There is also an upward trend showing that the sales continues to increase overtime and the magnitude of the spikes grows steadily.
+
+```{r autoplot-myts2}
+#time series qutoplot
+autoplot(myts2)
+```
+
+The seasonal plot below using `ggseasonlot()` gives us more clarity on when the seasonality takes place. Each year has a spike in December with the max prices increasing each year. We can take a guess as to why December is the month that spikes since this is when holiday shopping takes place as well as summer in the southern hemisphere, when more recreation may take place.
+
+```{r seasonplot-myts2}
+#time series seasonal plot
+ggseasonplot(myts2)
+```
+
+The subseries plot confirms the seasonality shown in the previous plots with December being the seasonal month. This plot creates a better visualization for a couple of details better than the previous plots. The difference between the minimum and maximum over the years is clearer. The minimum has a minor increase in December but the maximum has a dramatic increase when compared to the other months. The mean also has a big increase in December but then levels out during the Australian fall and winter.
+
+```{r subseriesplot}
+#time series sub series plot
+ggsubseriesplot(myts2)
+```
+
+## HA 6.2
+
+The plastics data set consists of the monthly sales (in thousands) of product A for a plastics manufacturer for five years.
+
+### a. Plot the time series of sales of product A. Can you identify seasonal fluctuations and/or a trend-cycle?
+
+The time plot automatically shows the monthly sales (in thousands) of product A for a plastics manufacturer for five years and reveals: (1) there is an increasing trend; (2) there is a mild seasonal pattern that increases in size as the level of the series increases; and (3) the sudden drop at the year end/starting year is due to government subsidies for pollution control, such as [deposit-refund systems](https://media.rff.org/archive/files/sharepoint/WorkImages/Download/RFF-DP-11-47.pdf).
+
+The season plot shows a seasonal pattern occurs from February to December for each year (five years) time series. 
+
+```{r fig.width=10, fig.height=15}
+#autoplot(), ggseasonplot(), ggsubseriesplot(), gglagplot(), ggAcf()
+p1 <- autoplot(plastics)
+p2 <- ggseasonplot(plastics)
+p3 <- ggsubseriesplot(plastics)
+p4 <- gglagplot(plastics)
+p5 <- ggAcf(plastics)
+p1 / p2 / p3 / p5
+```
+
+```{r fig.height=4, fig.width=12}
+p4
+```
+
+### b. Use a classical multiplicative decomposition to calculate the trend-cycle and seasonal indices.
+
+```{r fig.height=5, warning=FALSE}
+#multiplicative decomposition
+decomp_plastics <- plastics %>%
+  decompose(type = "multiplicative")
+
+decomp_plastics %>% autoplot()
+```
+
+### c. Do the results support the graphical interpretation from part a?
+
+The "Data" and "Seasonal" sections of the Decomposition shows similar results to the autoplot() chart. The seasonal pattern is unchanging, the remainder component has a lot of large values, and has an increasing trend with some missing observations from the beginning and the end of the data set. There is a steady seasonal trend that has a similar duration for each seasonal cycle. The "Trend" section of the Decomposition also supports the visuals from part A and shows a steady upward trend from years 1-5. 
+
+### d. Compute and plot the seasonally adjusted data.
+
+```{r warning=FALSE}
+plastics %>% decompose(type = "multiplicative") -> fit
+
+autoplot(plastics, series = "Data") +  
+  autolayer(trendcycle(decomp_plastics), series = "Trend") +
+  autolayer(seasadj(decomp_plastics), series = "Seasonally Adjusted")
+
+#fit <- seas(x = plastics, x11="")
+
+plastics %>%
+  stl(s.window = "periodic", robust = TRUE) %>%
+  autoplot()
+```
+
+### e. Change one observation to be an outlier (e.g., add 500 to one observation), and recompute the seasonally adjusted data. What is the effect of the outlier?
+The outlier was applied to the first observation in the plastics data so the chart changed only in year 1. The outlier being in the beginning of the data had no impact on the rest of the plot.
+```{r warning=FALSE}
+#creating a copy of plastics and adding 500 to one observation
+plastics2 <- plastics
+plastics2[1] <- plastics2[1] + 500
+
+decomp_plastics2 <- plastics2 %>%
+  decompose(type = "multiplicative")
+
+autoplot(plastics2, series = "Data") +  
+  autolayer(trendcycle(decomp_plastics2), series = "Trend") +
+  autolayer(seasadj(decomp_plastics2), series = "Seasonally Adjusted")
+```
+
+```{r}
+plasticsOutlier <- plastics
+plasticsOutlier[30] <- plasticsOutlier[30] + 500
+autoplot(plasticsOutlier, series = "Data") +  autolayer(trendcycle(fit), series = "Trend") +  autolayer(seasadj(fit), series = "Seasonally Adjusted") +   xlab("Year") + ylab("Monthly Sales (in thousands)") +  ggtitle("Seasonally Adjusted Plastics Manufacturer Sales Data") +  scale_color_manual(values = c("blue", "green", "red"), breaks = c("Data", "Trend", "Seasonally Adjusted"))
+```
+
+```{r}
+plasticsOutlier %>% decompose(type="multiplicative") %>%
+  autoplot() + xlab("Recorded Years") +
+  ggtitle("Multiplicative Decomposition of Plastics Manufacturer Sales Data")
+```
+
+
+### f. Does it make any difference if the outlier is near the end rather than in the middle of the time series?
+
+The middle outlier has a greater impact on the seasonally adjusted line than the end outlier when compared to the original plot. When the last observation is the outlier the Data and Seasonally Adjusted lines trend upward and all other areas on the chart are not impacted. When a middle observation is the outlier we see a different seasonally adjusted line when compared to the original chart. The downward and upward spikes around the outlier are sharper on the middle outlier chart while the original chart has subtle changes with a fairly even upward trend. 
+
+```{r fig.height=10, warning=FALSE}
+plastics_mid <- plastics
+plastics_end <- plastics  
+plastics_mid[30] <- plastics_mid[30] + 500 #outlier in the middle
+plastics_end[52] <- plastics_end[52] + 500 #outlier to reflect "near the end"
+
+decomp_mid <- plastics_mid %>%
+  decompose(type = "multiplicative")
+
+p <- autoplot(plastics, series = "Data") +  
+  autolayer(trendcycle(decomp_plastics), series = "Trend") +
+  autolayer(seasadj(decomp_plastics), series = "Seasonally Adjusted") +
+  ggtitle("Plastics Seasonally Adjusted - Original") +
+  theme(plot.title = element_text(size = 14))
+
+p1 <- autoplot(plastics_mid, series = "Data") +  
+  autolayer(trendcycle(decomp_mid), series = "Trend") +
+  autolayer(seasadj(decomp_mid), series = "Seasonally Adjusted") +
+  ggtitle("Plastics Seasonally Adjusted - Mid Observation")+
+  theme(plot.title = element_text(size = 14))
+
+decomp_end <- plastics_end %>%
+  decompose(type = "multiplicative")
+
+p2 <- autoplot(plastics_end, series = "Data") +  
+  autolayer(trendcycle(decomp_end), series = "Trend") +
+  autolayer(seasadj(decomp_end), series = "Seasonally Adjusted") +
+  ggtitle("Plastics Seasonally Adjusted - End Observation")+
+  theme(plot.title = element_text(size = 14))
+
+grid.arrange(p, p1,p2)
+```
+
+# Week 2
+
+## KJ 3.1
+
+The UC Irvine Machine Learning Repository contains a data set related to glass identification. The data consist of 214 glass samples labeled as one of seven class categories. There are nine predictors, including the refractive index and percentages of eight elements: Na, Mg, Al, Si, K, Ca, Ba, and Fe. The data can be accessed via:
+```{r warning=FALSE, error=FALSE}
+library(mlbench)
+data(Glass)
+str(Glass)
+```
+
+### a. Using visualizations, explore the predictor variables to understand their distributions as well as the relationships between predictors.
+When we explore the Glass dataset using summary we see that there are no NA values for any of the predictors. There are also no negative values with the minimum value being 0.00 (zero) for some predictors. 
+```{r}
+summary(Glass)
+```
+
+```{r fig.width=10, fig.height=10}
+ri_b <- ggplot(Glass, aes(x = Type, y = RI)) +
+  geom_boxplot()
+
+na_b <- ggplot(Glass, aes(x = Type, y = Na)) +
+  geom_boxplot()
+
+mg_b <- ggplot(Glass, aes(x = Type, y = Mg)) +
+  geom_boxplot()
+
+al_b <- ggplot(Glass, aes(x = Type, y = Al)) +
+  geom_boxplot()
+
+si_b <- ggplot(Glass, aes(x = Type, y = Si)) +
+  geom_boxplot()
+
+k_b <- ggplot(Glass, aes(x = Type, y = K)) +
+  geom_boxplot()
+
+ca_b <- ggplot(Glass, aes(x = Type, y = Ca)) +
+  geom_boxplot()
+
+ba_b <- ggplot(Glass, aes(x = Type, y = Ba)) +
+  geom_boxplot()
+
+fe_b <- ggplot(Glass, aes(x = Type, y = Fe)) +
+  geom_boxplot()
+
+
+ri_b+na_b+mg_b+al_b+si_b+k_b+ca_b+ba_b+fe_b+
+  plot_layout(ncol=3)
+```
+
+```{r fig.height=10, fig.width=10}
+ri_d <- ggplot(Glass, aes(RI, color=Type)) + geom_density()
+na_d <- ggplot(Glass, aes(Na, color=Type)) + geom_density()
+mg_d <- ggplot(Glass, aes(Mg, color=Type)) + geom_density()
+al_d <- ggplot(Glass, aes(Al, color=Type)) + geom_density()
+si_d <- ggplot(Glass, aes(Si, color=Type)) + geom_density()
+k_d <- ggplot(Glass, aes(K, color=Type)) + geom_density()
+ca_d <- ggplot(Glass, aes(Ca, color=Type)) + geom_density()
+ba_d <- ggplot(Glass, aes(Ba, color=Type)) + geom_density()
+fe_d <- ggplot(Glass, aes(Fe, color=Type)) + geom_density()
+
+ri_d+na_d+mg_d+al_d+si_d+k_d+ca_d+ba_d+fe_d+
+  plot_layout(ncol=3)
+```
+
+```{r}
+corrplot::corrplot(cor(Glass[c("RI", "Na", "Mg", "Al", "Si", "K", "Ca", "Ba", "Fe")]), method = 'number', type = 'lower')
+```
+
+### b. Do there appear to be any outliers in the data? Are any predictors skewed?
+
+The boxplots help us see the outliers for each type for each predictor. Type 2 has outliers for the Ri, Mg, and Ca predictors. The Ba predictor has more data for Type 7 with the rest of the types being scattered. The mean for Si is consistent between all types. When we explore the distribution plots we see that Si is closest to a normal distribution. K, Ba, and Fa are left skewed and Mg is right skewed. The other predictors are slightly skewed.  
+
+Looking at the density plots, it does appear that Mg, K, Ba, and Fe are especially more skewed than their counterparts. Mg follows a dramatic left skew, while Ba, K, and Fe follow a dramatic right skew. RI and Ca follow have similar distributions of right skews, and Na and Si seem to be the most normal, with Si following a more normal distribution. Al has distributions all over, but seems to follow a slight right skew.
+
+```{r fig.width=10, fig.height=12, warning = FALSE, message= FALSE}
+library(moments)
+library(gridExtra)
+
+doPlots <- function(Glass, fun, ii, ncol=3) {
+pp <- list()
+for (i in ii) {
+p <- fun(Glass=Glass, i=i)
+pp <- c(pp, list(p))
+}
+do.call("grid.arrange", c(pp, ncol=ncol))
+}
+
+plotDen <- function(Glass, i){
+data <- data.frame(x=Glass[[i]], type = Glass$Type)
+df <- as.data.frame(mean(data$x))
+colnames(df) <- "mean"
+df$median <- median(data$x)
+p <- ggplot(data= data) +
+geom_line(aes(x = x), stat = 'density', size = 1,alpha = 1.0) +
+xlab(paste0((colnames(Glass)[i]), '\n',
+'Skewness: ',round(skewness(Glass[[i]], na.rm = TRUE), 4), '\n',
+'Mean: ', round(df$mean, 4), '\n',
+'Median: ', round(df$median, 4))) +
+theme_light() +
+geom_vline(data=df, aes(xintercept=df$mean), linetype = "dashed", size=1, colour="red") +
+geom_vline(data=df, aes(xintercept=df$median), size = 1, colour="blue")
+
+return(p)
+}
+
+
+doPlots(Glass, plotDen, ii=1:9, ncol=2)
+```
+
+### c. Are there any relevant transformations of one or more predictors that might improve the classification model?
+
+Experimenting with BoxCox transformations for Ba and Fe since both predictors are heavily skewed to the left. The skewed variables could improve the classification model. This is because Box Cox transformation is an efficient way of an optimal transformation.
+
+## KJ 3.2
+
+The soybean data can also be found at the UC Irvine Machine Learning Repository. Data were collected to predict disease in 683 soybeans. The 35 predictors are mostly categorical and include information on the environmental conditions (e.g., temperature, precipitation) and plant conditions (e.g., left spots, mold growth). The outcome labels consist of 19 distinct classes. The data can be loaded via:
+
+```{r fig.height=10, fig.width=10}
+library(mlbench)
+data(Soybean)
+head(Soybean)
+summary(Soybean)
+## See ?Soybean for details
+```
+
+### a. Investigate the frequency distributions for the categorical predictors. Are any of the distributions degenerate in the ways discussed earlier in this chapter?
+
+All but one predictor contain NA values and can be evaluated to see if it is a degenerate distribution. There are no predictors where NA outnumber real values but there are some with a large number of NA. 'hail', 'sever', 'seed.tmt', and 'germ' have a large amount of NA values so we will explore how that impacts the data later. 
+
+****** Balance of the variables *******
+
+```{r fig.height=15, fig.width=10}
+col_names <- colnames(Soybean[-1])
+
+plot_list <- list()
+
+for (i in col_names){
+  plot <- ggplot(Soybean, aes_string(Soybean[,i])) +
+    geom_bar() +
+    xlab(colnames(Soybean[i])) 
+  plot_list[[i]] <- plot
+    #print(plot)
+}
+
+grid.arrange(grobs=plot_list, ncol=4)
+```
+
+### b. Roughly 18 % of the data are missing. Are there particular predictors that are more likely to be missing? Is the pattern of missing data related to the classes?
+
+Of the 18% of missing data, 8% come from 19 out of 36 columns: sever, seed.tmt, germ, leaf.halo, leaf.marg, leaf.size, leaf.shread, leaf.mid, stem.cankers, canker.lesion, ext.decay, int.discolor, fruit.pods, fruit.spots, and roots all seem to have data that's more likely to be missing (more than the smallest value).
+
+```{r fig.width=20,fig.height=10, message=FALSE}
+library(mice)
+library(VIM)
+md.pattern(Soybean)
+
+aggr(Soybean, col=c('navyblue','yellow'),
+     numbers=TRUE, sortVars=TRUE,
+     labels=names(Soybean), cex.axis=.7,
+     gap=3, ylab=c("Missing data","Pattern"))
+```
+
+### c. Develop a strategy for handling missing data, either by eliminating predictors or imputation.
+We chose to impute the data instead of eliminating predictors altogether. Predictors with NA values still had enough data where we didn't feel that complete removal was necessary. Below is a comparison of the summary for the original dataset and the imputed dataset. After the imputation, the numbers do not differ too much but we would need to continue this analysis to see how much the imputation impacted the dataset. 
+
+```{r}
+impute_soybean <- parlmice(Soybean, maxit = 5, m = 1, printFlag = FALSE, seed = 500, cluster.seed = 500)
+Soybean_2 <- complete(impute_soybean,1)
+```
+
+```{r}
+#original Soybean data
+summary(Soybean)
+#imputed soybean data
+summary(Soybean_2)
+```
+
+```{r fig.height=15, fig.width=10}
+col_names <- colnames(Soybean_2[-1])
+
+plot_list <- list()
+
+for (i in col_names){
+  plot <- ggplot(Soybean_2, aes_string(Soybean_2[,i])) +
+    geom_bar() +
+    xlab(colnames(Soybean_2[i])) 
+  plot_list[[i]] <- plot
+    #print(plot)
+}
+
+grid.arrange(grobs=plot_list, ncol=4)
+```
+
+## HA 7.1
+
+### Consider the pigs series — the number of pigs slaughtered in Victoria each month.
+
+The Simple Exponential Method (“SES”) method is suitable to forecast time series with no clear trend or seasonality. The Pigs data does not have a clear pattern and therefore we will use SES.
+
+```{r}
+help(pigs)
+pigs %>% autoplot()
+```
+
+### a. Use the `ses()` function in R to find the optimal values of \(\alpha\) and \(l_0\) and generate forecasts for the next four months.
+
+Using the `summary()` function $\alpha = 0.2971$ and $l_0 = 77260.0561$.
+
+```{r}
+#estimate parameter - the next four months
+fc<- ses(pigs, h=4)
+
+#timeseries plot with autoplot() function
+fc %>%
+  autoplot()
+```
+
+```{r}
+summary(fc)
+```
+
+### b. Compute a 95% prediction interval for the first forecast using \(\hat{y}\pm 1.96s\) where \(s\) is the standard deviation of the residuals. Compare your interval with the interval produced by R.
+
+From chapter 3.5. prediction intervals are calculated as $\hat{y}_T+h|T \pm c \hat{\sigma}_h$. The multiplier for 95% interval is 1.96 and the residuals are also equal to the RMSE. Using the SES model formula from part a, the $\hat{y} values are stored in a vector as are the residuals. Then, the values are subbed in for the formula. 
+
+The computed intervals vs. the predicted intervals are quite close. The September 1995 low interval at 95% is 78611.97, compared to the computed 78679.97 only a difference of 68. The high values for the predicted interval at 95% is 119020.80, compared to 118952.84 again differing by 68.
+
+```{r}
+y_hat <- c(1.96, -1.96)
+s <- sd(residuals(fc))
+
+ses(pigs, h=4)$mean[1]+(y_hat*s)
+```
+
+## HA 7.2 
+
+#### Write your own function to implement simple exponential smoothing. The function should take arguments y (the time series), alpha (the smoothing parameter α) and level (the initial level ℓ0). It should return the forecast of the next observation in the series. Does it give the same forecast as ses()?
+Let's create our own version of the $ses$() function using the formula for weighted average form
+
+$\hat{y}_{t+1|t} = \alpha y_t + (1 - \alpha) \hat{y}_{t|t-1}$
+
+
+```{r}
+
+myses <- function(y, alpha, level) {
+  
+  # set initial estimated y with level
+  y_hat <- level
+  
+  # traverse elements of series
+  for(i in 1:length(y)) {
+    
+    # calculate the next estimated y
+    y_hat <- alpha * y[i] + (1 - alpha) * y_hat
+    
+  }
+  
+  return(y_hat)
+  
+}
+
+```
+
+Now let's see if the forecast of the next observation in the series returned by our $myses$() function matches the value returned by the $ses$() function.
+
+```{r}
+
+optimal_alpha <- fc$model$par[1]
+optimal_l0    <- fc$model$par[2]
+
+print(optimal_alpha)
+print(optimal_l0)
+```
+
+```{r}
+
+
+fc_myses <- myses(y = pigs, alpha = optimal_alpha, level = optimal_l0)
+
+fc_ses <- ses(y = pigs, h = 4)
+
+print(fc_myses)
+
+print(fc_ses$mean[1])
+
+```
+
+When comparing the forecast results for the next observation we can see that the two calculation methods yield very close results.
+
+Calculation Method | Forecast value
+-------------------|-----------------------
+myses()   | `r paste0(round(fc_myses,2))`
+ses()      | `r paste0(round(fc_ses$mean[1],2))`
+
+
+## HA 7.3
+
+### Modify your function from the previous exercise to return the sum of squared errors rather than the forecast of the next observation. Then use the optim() function to find the optimal values of α and ℓ0. Do you get the same values as the ses() function?
+
+Based on the $myses$() function, create a function to return the Sum of Squared Errors (SSE).
+
+```{r}
+
+mySSE <- function( pars = c(alpha, level), y ) {
+  
+  # unpack pars array to get alpha and level values
+  alpha <- pars[1]
+  level <- pars[2]
+  
+  # set initial estimated y with level
+  y_hat <- level
+  
+  err   <- 0
+  
+  SSE   <- 0
+
+  # traverse elements of series
+  for(i in 1:length(y)) {
+    
+    # calculate error by subtracting estimated y from actual y
+    err <- y[i] - y_hat
+    
+    # sum up and accumulate squared errors
+    SSE <- SSE + err ^ 2
+    
+    # calculate the next estimated y
+    y_hat <- alpha * y[i] + (1 - alpha) * y_hat
+
+  }
+  
+  return(SSE)
+  
+}
+  
+```
+
+
+Let's use our $mySSE$() function to calculate the optimum values and compare them to the values from R's $ses$() function.
+
+```{r}
+
+result_mySSE <- optim( par = c(0.5, pigs[1]), y = pigs, fn = mySSE )
+
+
+mySSE_optimal_alpha <- result_mySSE$par[1]
+mySSE_optimal_l0    <- result_mySSE$par[2]
+
+ses_optimal_alpha   <- fc_ses$model$par[1]
+ses_optimal_l0      <- fc_ses$model$par[2]
+
+```
+
+When comparing the results of both methods, we see that the values are very close. The Optimal $\alpha$ for the $mySSE$() function is slightly bigger than that of the $ses$() function. While the Optimal $l_0$ for the $mySSE$() function is slightly smaller than that of the $ses$() function.
+
+<br>
+<br>
+
+Calculation Method | Optimal $\alpha$ | Optimal $l_0$
+-------------------|------------------|---------------
+$mySSE$() function | `r paste0(round(mySSE_optimal_alpha,7))`   | `r paste0(round(mySSE_optimal_l0,2))`
+R $ses$() function | `r paste0(round(ses_optimal_alpha,7))` | `r paste0(round(ses_optimal_l0,2))`
+# Week 3
+
+## HA 8.1 
+
+### Figure 8.31 shows the ACFs for 36 random numbers, 360 random numbers and 1,000 random numbers.
+
+```{r}
+url_img <- "https://otexts.com/fpp2/fpp_files/figure-html/wnacfplus-1.png"
+```
+
+![](`r url_img`)
+
+### a. Explain the differences among these figures. Do they all indicate that the data are white noise?
+
+All the figures do appear to indicate the data are white noise. This is because the autocorrelation is close to zero and mostly within the 95% bounds indicated by the blue dotted lines. In series x2, there are a few spikes that exceed the bounds. Because they are not extensive, do not excessively exceed the limit, and there is no obvious pattern they can still be considered all white noise. 
+
+### b. Why are the critical values at different distances from the mean of zero? Why are the autocorrelations different in each figure when they each refer to white noise?
+
+The critical values and the 95% bounds are dependent on the length of the time series $T$. As $T$ increases, the boundaries are narrowed. Likewise, from chapter 2.8 and 2.9, the calculations for autocorrelation coefficients ($r_k$) are dependent on the length of the time series, and as the time series grows the coefficients will decrease. 
+
+#### Series x1 Bounds
+```{r}
+c(2, -2) / sqrt(36)
+```
+
+#### Series x2 Bounds
+```{r}
+c(2, -2) / sqrt(360)
+```
+
+#### Series x3 Bounds
+```{r}
+c(2, -2) / sqrt(1000)
+```
+
+## HA 8.2 
+
+### A classic example of a non-stationary series is the daily closing IBM stock price series (data set ibmclose). Use R to plot the daily closing prices for IBM stock and the ACF and PACF. Explain how each plot shows that the series is non-stationary and should be differenced.
+
+- Stationary data will not show changes for seasonality, levels, or changes in variance. In the trend plot for the raw data, there are clear changes in levels across the time series, clearly ruling out these data as stationary.
+- The ACF plot confirms this by the spikes gradually reducing to zero. Stationary data will quickly drop to zero.
+- The PACF plot, while appears that most of the values are within the bounds the first value is extremely high. In fact, it is identical to the first value in the ACF. This is because of how the PACF is calculated the first value is always the same as the first value of the ACF. 
+
+### Not Differenced Plots
+
+```{r}
+library(fma)
+
+ibmclose %>% ggtsdisplay(main="")
+```
+
+Comparatively, with these data now differenced. The concerns mentioned above are rectified for the most part. Additional analysis should be done to verify that the values in the ACF and PACF exeeding the bounds are not excessive. 
+
+### Differenced Plots
+```{r}
+ibmclose %>% diff() %>% ggtsdisplay(main="")
+```
+
+## HA 8.6
+
+### Use R to simulate and plot some data from simple ARIMA models.
+
+### a. Use the following R code to generate data from an AR(1) model with  \(\theta_1 =0.6\) and \(\sigma^2 = 1\). The process starts with \(y = 0\)
+
+```{r}
+y <- ts(numeric(100))
+e <- rnorm(100)
+for(i in 2:100)
+  y[i] <- 0.6*y[i-1] + e[i]
+
+head(y)
+```
+
+### b. Produce a time plot for the series. How does the plot change as you change \(\theta_1\)?
+
+It appears that as the $\theta_1$ increases to 1.0, the variation and "randomness" increases. Even with the green ($\theta_1 = 0.6$) and red ($\theta_1 = 0.2$) lines in the figure below have similar variation though random points. The blue line ($\theta_1 = 0.95$) has rather extreme spikes and level changes in both directions, particularly compared to the others.
+
+```{r fig.width = 10}
+set.seed(999)
+
+ar1 <- function(phi1){
+  
+  y <- ts(numeric(100))   # generate 100 data points from an AR(1) model with input phi1.
+
+  e <- rnorm(100)  # error 'e's have variation sigma^2 as 1.
+  
+  for(i in 2:100){
+    y[i] <- phi1*y[i-1] + e[i]
+  }
+  return(y)
+}
+
+
+# produce plots changing phi1 value.
+autoplot(ar1(0.20), series = "0.2") +
+  geom_line(size = 1, colour = "red") +
+  autolayer(y, series = "0.6", size = 1) +
+  autolayer(ar1(0.95), size = 1, series = "0.95") +
+  ylab("AR(1) models") +
+  guides(colour = guide_legend(title = "Phi1")) + theme_classic()
+```
+
+### c. Write your own code to generate data from an MA(1) model with \(\theta_1 =0.6\) and \(\sigma^2 = 1\)
+
+```{r}
+ma1 <- function(theta1){
+  # generate 100 data points from an MA(1) model with input theta1.
+  y <- ts(numeric(100))
+  # error 'e's have variation sigma^2 as 1.
+  e <- rnorm(100)
+  for(i in 2:100){
+    y[i] <- theta1*e[i-1] + e[i]
+  }
+  return(y)
+}
+```
+
+### d. Produce a time plot for the series. How does the plot change as you change \(\theta_1\)?
+
+Similar to the changes in part b, the changes in the blue line are certainly more pronounced compared to the other two. It is interesting to not the difference between 0.2, 0.6, 0.95 are relatively close and yet the effects in the time plot are more extreme as it approaches 1.0.
+
+```{r fig.width=10}
+set.seed(999)
+
+autoplot(ma1(0.2), series = "0.2") +
+  geom_line(size = 1, colour = "red") +
+  autolayer(y, series = "0.6", size = 1) +
+  autolayer(ar1(0.9), size = 1, series = "0.95") +
+  ylab("MA(1) models") +
+  guides(colour = guide_legend(title = "Theta1")) + theme_classic()
+```
+
+### e. Generate data from an ARMA(1,1) model with \(\theta_1 =0.6\) and \(\sigma^2 = 1\).
+
+```{r}
+y_arima.1.0.1 <- ts(numeric(50))
+e <- rnorm(50)
+for(i in 2:50){
+   y_arima.1.0.1[i] <- 0.6*y_arima.1.0.1[i-1] + 0.6*e[i-1] + e[i]
+}
+```
+
+### f. Generate data from an AR(2) model with \(\theta_1 =0.8\), \(\theta_1 =0.3\) and \(\sigma^2 = 1\). (Note that these parameters will give a non-stationary series.)
+
+```{r}
+y_arima.2.0.0 <- ts(numeric(50))
+e <- rnorm(50)
+for(i in 3:50){
+   y_arima.2.0.0[i] <- -0.8*y_arima.2.0.0[i-1] + 0.3*y_arima.2.0.0[i-2] + e[i]
+}
+```
+
+### g. Graph the latter two series and compare them.
+
+The AR(2) values appear to be exponentially increasing over time, while the ARMA(1,1) model appears to vary little. 
+
+```{r fig.width =10, fig.height = 4}
+autoplot(y_arima.1.0.1, series = "ARMA(1, 1)") +
+  autolayer(y_arima.2.0.0, series = "AR(2)") +
+  ylab("y") +
+  guides(colour = guide_legend(title = "Models")) + theme_classic() + 
+autoplot(y_arima.1.0.1) + theme_classic()
+```
+
+## HA 8.8
+
+### Consider austa, the total international visitors to Australia (in millions) for the period 1980-2015.
+
+### a. Use auto.arima() to find an appropriate ARIMA model. What model was selected. Check that the residuals look like white noise. Plot forecasts for the next 10 periods.
+
+* The `auto.arima()` function selected the **ARIMA(0,1,1) with drift** model.
+
+* The residuals from the selected model look like white noise because appear to be normal and not obviously significant.
+
+* The forecasts plot for the next 10 periods shows a steady upwards positive trend.
+
+```{r}
+# Fit best ARIMA model to the austa time series
+auto_arima_austa <-forecast::auto.arima(austa)
+
+# Show the results summary of the fitted model 
+summary(auto_arima_austa)
+```
+
+
+```{r}
+# Check that residuals from the time series model look like white noise
+# and produce a time plot of the residuals
+checkresiduals(auto_arima_austa, plot = TRUE)
+```
+
+
+```{r}
+# Forecasts for the next 10 periods
+fc_auto_arima_austa <- forecast(auto_arima_austa, h = 10)
+
+# Plot forecasts for the next 10 periods
+autoplot(fc_auto_arima_austa) +
+  ggtitle("ARIMA(0,1,1) with Drift for next 10 periods") +
+  theme_bw() +
+  scale_x_continuous(breaks = seq(from = 1980, to = 2030, by = 5)) +
+  scale_y_continuous(breaks = seq(from = 0, to = 11, by = 1))
+```
+
+### b. Plot forecasts from an ARIMA(0,1,1) model with no drift and compare these to part a. Remove the MA term and plot again.
+
+* Compared to the forecast plot in part (a), the forecasts plot from an ARIMA(0,1,1) model with no drift, no longer longer shows an upward trend. Instead, it shows a constant flat line at 7.0.
+
+* Compared to the forecast plot in part (a), the forecasts plot from an ARIMA(0,1,0) model with no drift and with the MA term removed, also shows a constant flat line but shifted 0.1735 units below 7.0. Additionally, the confidence intervals (80 and 95) seem to have narrowed slightly.
+
+
+```{r}
+# Fit an ARIMA(0,1,1) model to the austa time series
+# by default the include.drift parameter is set to FALSE
+arima_011_nd_austa <- forecast::Arima(austa, order = c(0, 1, 1), include.drift = FALSE)
+
+# Forecasts for the next 10 periods
+fc_arima_011_nd_austa <- forecast(arima_011_nd_austa, h = 10)
+
+# Plot forecasts for the next 10 periods
+autoplot(fc_arima_011_nd_austa) +
+  ggtitle("ARIMA(0,1,1) without Drift for next 10 periods") +
+  theme_bw() +
+  scale_x_continuous(breaks = seq(from = 1980, to = 2030, by = 5)) +
+  scale_y_continuous(breaks = seq(from = 0, to = 11, by = 1))
+```
+
+```{r}
+# Fit an ARIMA(0,1,0) model (MA term removed) to the austa time series
+# by default the include.drift parameter is set to FALSE
+arima_010_nd_austa <- forecast::Arima(austa, order = c(0, 1, 0), include.drift = FALSE)
+
+# Forecasts for the next 10 periods
+fc_arima_010_nd_austa <- forecast(arima_010_nd_austa, h = 10)
+
+# Plot forecasts for the next 10 periods
+autoplot(fc_arima_010_nd_austa) +
+  ggtitle("ARIMA(0,1,1) without Drift for next 10 periods") +
+  theme_bw() +
+  scale_x_continuous(breaks = seq(from = 1980, to = 2030, by = 5)) +
+  scale_y_continuous(breaks = seq(from = 0, to = 11, by = 1))
+```
+
+### c. Plot forecasts from an ARIMA(2,1,3) model with drift. Remove the constant and see what happens.
+
+When comparing the ARIMA(2,1,3) with drift model vs the same model but with the constant removed, we see that 
+
+* The first forecast plot shows a slowly upward trend (almost concave down shape)
+* The second forecast plot shows a faster upward trend (almost linear shape)
+* The confidence intervals for the second one are wider.
+
+```{r}
+# Fit an ARIMA(2,1,3) model with drift to the austa time series
+arima_213_wd_austa <- forecast::Arima(austa, order = c(2,1,3), include.drift = TRUE)
+
+# Forecasts for the next 10 periods
+fc_arima_213_wd_austa <- forecast(arima_213_wd_austa, h = 10)
+
+# Plot forecasts for the next 10 periods
+autoplot(fc_arima_213_wd_austa) +
+  ggtitle("ARIMA(2,1,3) with Drift for next 10 periods") +
+  theme_bw() +
+  scale_x_continuous(breaks = seq(from = 1980, to = 2030, by = 5)) +
+  scale_y_continuous(breaks = seq(from = 0, to = 11, by = 1))
+```
+
+```{r}
+# Fit an ARIMA(2,1,0) model (constant removed) with drift to the austa time series
+arima_210_wd_austa <- forecast::Arima(austa, order = c(2,1,0), include.drift = TRUE)
+
+# Forecasts for the next 10 periods
+fc_arima_210_wd_austa <- forecast(arima_210_wd_austa, h = 10)
+
+# Plot forecasts for the next 10 periods
+autoplot(fc_arima_210_wd_austa) +
+  ggtitle("ARIMA(2,1,0) with Drift for next 10 periods") +
+  theme_bw() +
+  scale_x_continuous(breaks = seq(from = 1980, to = 2030, by = 5)) +
+  scale_y_continuous(breaks = seq(from = 0, to = 11, by = 1))
+```
+
+### d. Plot forecasts from an ARIMA(0,0,1) model with a constant. Remove the MA term and plot again.
+
+When comparing the forecast plots of ARIMA(0,0,1) model with that of the ARIMA(0,0,0) model, we see that
+
+* The first one shows an immediate trend drop to 5.0 followed by asharp linear downwards trend for the first period, then followed by a flat line trend.
+
+* The second one shows an immediate trend drop to 3.5 followed by a flat line trend.
+
+* The confidence intervals on the second one are wider.
+
+```{r}
+# Fit an ARIMA(0,0,1) model to the austa time series
+arima_001_nd_austa <- forecast::Arima(austa, order = c(0,0,1), include.drift = FALSE)
+
+# Forecasts for the next 10 periods
+fc_arima_001_nd_austa <- forecast(arima_001_nd_austa, h = 10)
+
+# Plot forecasts for the next 10 periods
+autoplot(fc_arima_001_nd_austa) +
+  ggtitle("ARIMA(0,0,1) for next 10 periods") +
+  theme_bw() +
+  scale_x_continuous(breaks = seq(from = 1980, to = 2030, by = 5)) +
+  scale_y_continuous(breaks = seq(from = 0, to = 11, by = 1))
+```
+
+```{r}
+# Fit an ARIMA(0,0,0) model (MA term removed) to the austa time series
+arima_000_nd_austa <- forecast::Arima(austa, order = c(0,0,0), include.drift = FALSE)
+
+# Forecasts for the next 10 periods
+fc_arima_000_nd_austa <- forecast(arima_000_nd_austa, h = 10)
+
+# Plot forecasts for the next 10 periods
+autoplot(fc_arima_000_nd_austa) +
+  ggtitle("ARIMA(0,0,0) for next 10 periods") +
+  theme_bw() +
+  scale_x_continuous(breaks = seq(from = 1980, to = 2030, by = 5)) +
+  scale_y_continuous(breaks = seq(from = 0, to = 11, by = 1))
+```
+
+### e. Plot forecasts from an ARIMA(0,2,1) model with no constant.
+
+
+```{r}
+# Fit an ARIMA(0,2,1) model to the austa time series
+arima_021_nd_austa <- forecast::Arima(austa, order = c(0,2,1), include.drift = FALSE)
+
+# Forecasts for the next 10 periods
+fc_arima_021_nd_austa <- forecast(arima_021_nd_austa, h = 10)
+
+# Plot forecasts for the next 10 periods
+autoplot(fc_arima_021_nd_austa) +
+  ggtitle("ARIMA(0,2,1) for next 10 periods") +
+  theme_bw() +
+  scale_x_continuous(breaks = seq(from = 1980, to = 2030, by = 5)) +
+  scale_y_continuous(breaks = seq(from = 0, to = 11, by = 1))
+```
