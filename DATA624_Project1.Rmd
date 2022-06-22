@@ -1,7 +1,11 @@
 ---
 title: "Data624 - Project 1"
 author: "Esteban Aramayo, Coffy Andrews-Guo, LeTicia Cancel, Joseph Connolly, Ian Costello"
+<<<<<<< Updated upstream
 date: '2022-06-13'
+=======
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+>>>>>>> Stashed changes
 output: 
   word_document:
     toc: yes
@@ -12,13 +16,33 @@ output:
     toc_depth: 2
 ---
 
-```{r warning=FALSE}
-#libraries
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo=FALSE}
+# install from CRAN
+#install.packages("officedown")
+
+# or GitHub
+#remotes::install_github("davidgohel/officedown")
+```
+
+
+
+
+Required Libraries
+```{r warning=FALSE, message=FALSE}
+libraries
 library(readxl)
 library(tidyverse)
 library(ggplot2)
 library(patchwork)
 ```
+
+
+
+
 
 # Project Summary
 
@@ -32,6 +56,12 @@ df <- read_excel("data.xls")
 head(df)
 ```
 
+**Data Structure**
+```{r}
+str(df)
+```
+
+
 ## Data Exploration
 
 The data set does not appear to have any distinguishing labels that would indicate anything about the source or purpose of the data set. Under normal circumstances, context about data and use case is important for forecasting. Context may help identify the kinds of methods and models that would be best suited to produce an accurate result - following the "no free lunch" principle. 
@@ -42,35 +72,46 @@ each predictor has NA values but I'm not sure what proportion of the data is NA 
 ```{r}
 summary(df)
 ```
-Boxplots: Var02 has the most outliers but this is also the column with the largest range in values
-```{r warning=FALSE, fig.width=10, fig.height=8}
-p1 <- ggplot(df, aes(category, Var01)) +
-  geom_boxplot()
-p2 <- ggplot(df, aes(category, Var02)) +
-  geom_boxplot()
-p3 <- ggplot(df, aes(category, Var03)) +
-  geom_boxplot()
-p4 <- ggplot(df, aes(category, Var05)) +
-  geom_boxplot()
-p5 <- ggplot(df, aes(category, Var07)) +
-  geom_boxplot()
 
-p1+p2+p3+p4+p5+
-  plot_layout(ncol = 2)
+
+
+## Data Visualization - Predicators
+
+A time series that contain a list of numbers (the measurements), along with some information about what times those numbers were recorded (the index). 
+
+
+*Box plots*
+
+- Var02 has the most outliers but this is also the column with the largest range in values
+```{r warning=FALSE, message=FALSE, fig.width=6, fig.height=8}
+p1 <- ggplot(df, aes(Var01, fill = category)) +
+  geom_boxplot(outlier.color = "red", outlier.size = 3)
+p2 <- ggplot(df, aes(Var02, fill = category)) +
+  geom_boxplot(outlier.color = "red", outlier.size = 3)
+p3 <- ggplot(df, aes(Var03, fill = category)) +
+  geom_boxplot(outlier.color = "red", outlier.size = 3)
+p4 <- ggplot(df, aes(Var05, fill = category)) +
+  geom_boxplot(outlier.color = "red", outlier.size = 3)
+p5 <- ggplot(df, aes(Var07, fill = category)) +
+  geom_boxplot(outlier.color = "red", outlier.size = 3)
+p6 <- ggplot(df, aes(SeriesInd, fill = category)) + 
+  geom_boxplot(outlier.color = "red", outlier.size = 10)
+
+(p1+p2)/(p3+p4)/(p5+p6)
 ```
 
 All predictors are left skewed so transformations are needed for each column
 ```{r warning=FALSE, fig.width=10, fig.height=7}
-p1 <- ggplot(df, aes(Var01, color=category)) +
-  geom_density()
-p2 <- ggplot(df, aes(Var02, color=category)) +
-  geom_density()
-p3 <- ggplot(df, aes(Var03, color=category)) +
-  geom_density()
-p4 <- ggplot(df, aes(Var05, color=category)) +
-  geom_density()
-p5 <- ggplot(df, aes(Var07, color=category)) +
-  geom_density()
+p1 <- ggplot(df, aes(Var01, fill=category)) +
+  geom_density(alpha = 0.5)
+p2 <- ggplot(df, aes(Var02, fill=category)) +
+  geom_density(alpha = 0.5)
+p3 <- ggplot(df, aes(Var03, fill=category)) +
+  geom_density(alpha = 0.5)
+p4 <- ggplot(df, aes(Var05, fill=category)) +
+  geom_density(alpha = 0.5)
+p5 <- ggplot(df, aes(Var07, fill=category)) +
+  geom_density(alpha = 0.5)
 
 p1+p2+p3+p4+p5+
   plot_layout(ncol = 2)
@@ -136,7 +177,18 @@ p1+p2+p3+p4+p5+
   plot_layout(ncol = 2)
 ```
 
+<<<<<<< Updated upstream
 
+=======
+```{}
+s01 <- data %>% filter(group == "S01")
+s02 <- data %>% filter(group == "S02")
+s03 <- data %>% filter(group == "S03")
+s04 <- data %>% filter(group == "S04")
+s05 <- data %>% filter(group == "S05")
+s06 <- data %>% filter(group == "S06")
+```
+>>>>>>> Stashed changes
 
 
 
