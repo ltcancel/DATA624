@@ -242,3 +242,20 @@ p5 <- ggplot(df_transformed, aes(Var07, color=category)) +
 p1+p2+p3+p4+p5+
   plot_layout(ncol = 2)
 ```
+
+```{r}
+s01 <- df_transformed %>% dplyr::filter(category == "S01")
+s02 <- df_transformed %>% dplyr::filter(category == "S02")
+s03 <- df_transformed %>% dplyr::filter(category == "S03")
+s04 <- df_transformed %>% dplyr::filter(category == "S04")
+s05 <- df_transformed %>% dplyr::filter(category == "S05")
+s06 <- df_transformed %>% dplyr::filter(category == "S06")
+```
+
+
+
+
+
+
+
+
