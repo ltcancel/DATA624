@@ -314,6 +314,13 @@ fit_stl %>% seasadj() %>% naive()%>%
 fit_stl %>% forecast(method="naive") %>%
   autoplot()
 
+#forecast from Holt-Winters
+hw <- HoltWinters(s01_ts) 
+
+hw %>% forecast() %>%
+  autoplot()
+
+
 ```
 
 ```{r}
@@ -325,5 +332,11 @@ autoplot(fit_ets)
 fit_ets %>% forecast(h=5) %>%
   autoplot()
 ```
+
+
+
+
+
+
 
 
