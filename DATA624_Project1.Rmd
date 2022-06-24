@@ -299,14 +299,30 @@ autoplot(s01_ts) / ggseasonplot(s01_ts) / ggsubseriesplot(s01_ts) / ggAcf(s01_ts
 ```
 ```{r}
 gglagplot(s01_ts)
-library(a)
 ```
 
 Forecasting S01 with decomposition
 ```{r}
 #STL using default values
-fit <- stl(s01_ts, s.window = "periodic")
-fit %>% seasadj() %>% naive()%>%
+fit_stl <- stl(s01_ts, s.window = "periodic")
+
+#forecast of seasonaly adjusted data
+fit_stl %>% seasadj() %>% naive()%>%
+  autoplot()
+
+#forecast from SLT + Random walk
+fit_stl %>% forecast(method="naive") %>%
+  autoplot()
+
+```
+
+```{r}
+#simple exponential smoothing since there is no clear trend of seasonal pattern for S01
+fit_ets <- ets(s01_ts)
+summary(fit_ets)
+autoplot(fit_ets)
+
+fit_ets %>% forecast(h=5) %>%
   autoplot()
 ```
 
