@@ -252,10 +252,55 @@ s05 <- df_transformed %>% dplyr::filter(category == "S05")
 s06 <- df_transformed %>% dplyr::filter(category == "S06")
 ```
 
+Testing conversion using at.Date so each row is a date with no time.
+```{r}
+df_test <- read_excel("data.xls")
+head(df_test)
+tail(df_test)
+
+# Converting Var02 to Datetime
+df_test$SeriesInd <- as.Date(df_test$SeriesInd, origin = "1899-12-30")
 
 
+# Renaming SeriesInd to Date to clarify purpose
+df_test <- df_test %>% rename("Date" = SeriesInd)
+summary(df_test)
+
+#new imputation
+preProcess_NAdata_model <- preProcess(as.data.frame(df_test), method ="medianImpute")
+
+df_test <- predict(preProcess_NAdata_model, newdata = df_test)
+
+paste0(sum(is.na(df_test))," values missing after imputation")
+
+#new subsets with data conversion
+s01_2 <- df %>% filter(category == "S01")
+s02_2 <- df %>% filter(category == "S02")
+s03_2 <- df %>% filter(category == "S03")
+s04_2 <- df %>% filter(category == "S04")
+s05_2 <- df %>% filter(category == "S05")
+s06_2 <- df %>% filter(category == "S06")
+```
 
 
+create time series for each subset using the dataframe with dates
+```{r}
+s01_ts <- ts(s01_2[,"Var01"], frequency = 7, start = c(2011, 5), end = c(2018, 5))
+s02_ts <- ts(s02_2[,"Var01"], frequency = 7, start = c(2011, 5), end = c(2018, 5))
+s03_ts <- ts(s03_2[,"Var01"], frequency = 7, start = c(2011, 5), end = c(2018, 5))
+s04_ts <- ts(s04_2[,"Var01"], frequency = 7, start = c(2011, 5), end = c(2018, 5))
+s05_ts <- ts(s05_2[,"Var01"], frequency = 7, start = c(2011, 5), end = c(2018, 5))
+s06_ts <- ts(s06_2[,"Var01"], frequency = 7, start = c(2011, 5), end = c(2018, 5))
+```
+
+Test Autoplots and seasonal plots for S01
+```{r fig.width=10, fig.height=10}
+autoplot(s01_ts) / ggseasonplot(s01_ts) / ggsubseriesplot(s01_ts) / ggAcf(s01_ts)
+```
+```{r}
+gglagplot(s01_ts)
+library(a)
+```
 
 
 
