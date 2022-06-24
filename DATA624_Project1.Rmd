@@ -302,5 +302,12 @@ gglagplot(s01_ts)
 library(a)
 ```
 
+Forecasting S01 with decomposition
+```{r}
+#STL using default values
+fit <- stl(s01_ts, s.window = "periodic")
+fit %>% seasadj() %>% naive()%>%
+  autoplot()
+```
 
 
