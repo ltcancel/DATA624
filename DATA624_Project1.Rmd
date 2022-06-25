@@ -36,6 +36,7 @@ library(RANN)
 library(VIM)
 library(ggpubr)
 library(gridExtra)
+library(forecast)
 ```
 
 # Project Summary
@@ -646,6 +647,7 @@ autoplot(fit_ets)
 fit_ets %>% forecast(h=5) %>%
   autoplot()
 ```
+
 
 
 
