@@ -1,11 +1,7 @@
 ---
 title: "Data624 - Project 1"
 author: "Esteban Aramayo, Coffy Andrews-Guo, LeTicia Cancel, Joseph Connolly, Ian Costello"
-<<<<<<< Updated upstream
-date: '2022-06-13'
-=======
-date: "`r format(Sys.time(), '%d %B, %Y')`"
->>>>>>> Stashed changes
+date: '2022-06-21'
 output: 
   word_document:
     toc: yes
@@ -38,6 +34,10 @@ library(readxl)
 library(tidyverse)
 library(ggplot2)
 library(patchwork)
+library(fpp2)
+library(caret)
+library(RANN)
+library(VIM)
 ```
 
 
@@ -56,19 +56,78 @@ df <- read_excel("data.xls")
 head(df)
 ```
 
-**Data Structure**
+## Data Cleaning & Imputation
+
 ```{r}
-str(df)
+# Factoring category to get a count of the elements within dataset
+df$category <- as.factor(df$category)
+
+summary(df)
 ```
 
+- All groups are equal in length
 
-## Data Exploration
+- Columns 5-7 (Var03, Var04, Var07) all have same amount of missing values. Very close quartile and min/max values, comparable to column 3 (Var01). Column 4 (Var02) has values that are significantly larger 
 
-The data set does not appear to have any distinguishing labels that would indicate anything about the source or purpose of the data set. Under normal circumstances, context about data and use case is important for forecasting. Context may help identify the kinds of methods and models that would be best suited to produce an accurate result - following the "no free lunch" principle. 
+##### Handling Missing Data
 
-Starting with some data exploration using `summary()` 
+```{r}
+paste0(sum(is.na(df))," values missing from original set")
+```
 
-each predictor has NA values but I'm not sure what proportion of the data is NA yet. Column Var02's values differ the most when compared to the other Var## columns. So we will see how that impacts the data.
+- The dilemma is to decide whether or not it is appropriate to perform an analysis via imputing missing values, or to simply delete them. According to the plot below, generated via "VIM::aggr()", 91.81% of the data is fulfilled. Var01, Var02, Var03, Var05, and Var07 are missing about 8% of data. At first impression, this seems like an insignificant amount of data that can be omitted from the set. Further investigation is needed to confirm this impression, and deletion will be deemed appropriate when the data is found to be missing completely at random (MCAR) 
+
+```{r fig.width=10}
+# Plots of missing values
+
+aggr_plot <- VIM::aggr(df, col = c("navyblue", "orange"), 
+                  numbers = T, sortVars = T,
+                  labels = names(df),
+                  cex.axis = 0.7, gap = 3,
+                  ylab = c("Frequency of Missing Data", "Pattern"))
+```
+
+##### Impute or Delete?
+
+- An excerpt from the following paper, $\underline{The\ prevention\ and\ handling\ of\ the\ missing\ data}$, by Hyun Kang, argues when deletion is appropriate or not from the following quote: *"...if the assumption of MCAR (missing completely at random) is satisfied, a listwise deletion is known to produce unbiased estimates and conservative results. When the data do not fulfill the assumption of MCAR, listwise deletion may cause bias in the estimates of the parameters. If there is a large enough sample, where power is not an issue, and the assumption of MCAR is satisfied, the listwise deletion may be a reasonable strategy. However, when there is not a large sample, or the assumption of MCAR is not satisfied, the listwise deletion is not the optimal strategy"* [$^1$](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3668100/)
+
+Creating a shadow matrix to see missing values will indicate whether or not the data is MCAR. 1 indicates all values are present, and anything else indicates the ratio/percentage of missing values correlated among each other [$^2$](https://stats.stackexchange.com/questions/172316/a-statistical-approach-to-determine-if-data-are-missing-at-random)
+
+
+```{r}
+# Shadow Matrix: correlation of missing values from the dataset
+
+x <- as.data.frame(abs(is.na(df))) 
+
+y <- x[which(sapply(x, sd) >0)] # Extracts which variables are missing/NA from the dataset
+
+cor(y) # Tendency of NA when correlated among variables
+```
+
+Aside from considering values correlated with themselves, the following have no missing values when correlated with others:
+
+  - Var03 has no missing values when correlated with Var05 and Var07
+  
+  - Var05 has no missing values when correlated with Var03 and Var07
+  
+  - Var07 has no missing values when correlated with Var03 and Var05
+  
+Taking these observations into consideration, it seems there appears to be bias in the data in the context of missing data. Therefore, it seems appropriate to impute the data for missing values since there is evidence they are not missing completely at random.
+
+##### Data Imputation
+
+- Imputation via "medianImpute" method within "preProcess()" function
+
+```{r}
+preProcess_NAdata_model <- preProcess(as.data.frame(df), method ="medianImpute")
+
+df <- predict(preProcess_NAdata_model, newdata = df)
+
+paste0(sum(is.na(df))," values missing after imputation")
+```
+
+- No data is missing after imputation
+
 ```{r}
 summary(df)
 ```
@@ -101,6 +160,7 @@ p6 <- ggplot(df, aes(SeriesInd, fill = category)) +
 ```
 
 All predictors are left skewed so transformations are needed for each column
+
 ```{r warning=FALSE, fig.width=10, fig.height=7}
 p1 <- ggplot(df, aes(Var01, fill=category)) +
   geom_density(alpha = 0.5)
@@ -117,26 +177,20 @@ p1+p2+p3+p4+p5+
   plot_layout(ncol = 2)
 ```
 
-The NAs make up less than 10% of all values in the data. 
-```{r}
-aggr(df, col=c('navyblue','yellow'),
-     numbers=TRUE, sortVars=TRUE,
-     labels=names(df), cex.axis=.7,
-     gap=3, ylab=c("Missing data","Pattern"))
-```
 ## Data transformations
 
 Var02 is the most skewed
 ```{r}
 library(moments)
-skewness(df$Var01, na.rm = TRUE)
-skewness(df$Var02, na.rm = TRUE)
-skewness(df$Var03, na.rm = TRUE)
-skewness(df$Var05, na.rm = TRUE)
-skewness(df$Var07, na.rm = TRUE)
+skewness(df$Var01)
+skewness(df$Var02)
+skewness(df$Var03)
+skewness(df$Var05)
+skewness(df$Var07)
 ```
 
 Experimenting with 3 different transformations; log, square root, and cube root. The log transformation looks the most normalized
+
 ```{r error=FALSE}
 log_var01 <- log10(df$Var01)
 sqrt_var01 <- sqrt(df$Var01)
@@ -151,6 +205,7 @@ hist(cube_var01)
 ```
 
 Transform all predictors using log transformation
+
 ```{r}
 df_transformed <- df
 df_transformed$Var01 <- log10(df$Var01)
@@ -161,6 +216,7 @@ df_transformed$Var07 <- log10(df$Var07)
 ```
 
 New plots using transformed dataframe. Var02 is the most normalize so I will try different transformations with the other columns
+
 ```{r warning=FALSE, fig.width=10, fig.height=7}
 p1 <- ggplot(df_transformed, aes(Var01, color=category)) +
   geom_density()
@@ -177,18 +233,6 @@ p1+p2+p3+p4+p5+
   plot_layout(ncol = 2)
 ```
 
-<<<<<<< Updated upstream
-
-=======
-```{}
-s01 <- data %>% filter(group == "S01")
-s02 <- data %>% filter(group == "S02")
-s03 <- data %>% filter(group == "S03")
-s04 <- data %>% filter(group == "S04")
-s05 <- data %>% filter(group == "S05")
-s06 <- data %>% filter(group == "S06")
-```
->>>>>>> Stashed changes
 
 
 
