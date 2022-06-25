@@ -12,8 +12,24 @@ output:
     toc_depth: 2
 ---
 
-```{r warning=FALSE}
-#libraries
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo=FALSE}
+# install from CRAN
+#install.packages("officedown")
+
+# or GitHub
+#remotes::install_github("davidgohel/officedown")
+```
+
+
+
+
+Required Libraries
+```{r warning=FALSE, message=FALSE}
+libraries
 library(readxl)
 library(tidyverse)
 library(ggplot2)
@@ -23,6 +39,10 @@ library(caret)
 library(RANN)
 library(VIM)
 ```
+
+
+
+
 
 # Project Summary
 
@@ -34,10 +54,6 @@ De-identified data was provided to conduct a series of six forecasts of differen
 ```{r}
 df <- read_excel("data.xls")
 head(df)
-```
-
-```{r}
-dim(df)
 ```
 
 ## Data Cleaning & Imputation
@@ -116,72 +132,46 @@ paste0(sum(is.na(df))," values missing after imputation")
 summary(df)
 ```
 
-- No discrepencies in the data after imputation.
-
-##### Datetime conversion
-
-- It was found that column 1, "SeriesInd" is a datetime column. Datetime conversion is to be performed after imputation in order to ensure a successful imputation
-
-```{r}
-# Converting Var02 to Datetime
-df$SeriesInd <- as.integer(df$SeriesInd)
-df$SeriesInd <- as.POSIXct(df$SeriesInd, origin = "1970-01-01")
 
 
-# Renaming SeriesInd to Date to clarify purpose
+## Data Visualization - Predicators
 
-df <- df %>% rename("Datetime" = SeriesInd)
-summary(df)
-```
+A time series that contain a list of numbers (the measurements), along with some information about what times those numbers were recorded (the index). 
 
-##### Final susbets 
 
-```{r}
-# For forecasting later on
+*Box plots*
 
-s01 <- df %>% filter(category == "S01")
-s02 <- df %>% filter(category == "S02")
-s03 <- df %>% filter(category == "S03")
-s04 <- df %>% filter(category == "S04")
-s05 <- df %>% filter(category == "S05")
-s06 <- df %>% filter(category == "S06")
-```
+- Var02 has the most outliers but this is also the column with the largest range in values
+```{r warning=FALSE, message=FALSE, fig.width=6, fig.height=8}
+p1 <- ggplot(df, aes(Var01, fill = category)) +
+  geom_boxplot(outlier.color = "red", outlier.size = 3)
+p2 <- ggplot(df, aes(Var02, fill = category)) +
+  geom_boxplot(outlier.color = "red", outlier.size = 3)
+p3 <- ggplot(df, aes(Var03, fill = category)) +
+  geom_boxplot(outlier.color = "red", outlier.size = 3)
+p4 <- ggplot(df, aes(Var05, fill = category)) +
+  geom_boxplot(outlier.color = "red", outlier.size = 3)
+p5 <- ggplot(df, aes(Var07, fill = category)) +
+  geom_boxplot(outlier.color = "red", outlier.size = 3)
+p6 <- ggplot(df, aes(SeriesInd, fill = category)) + 
+  geom_boxplot(outlier.color = "red", outlier.size = 10)
 
-## Data Exploration
-
-The data set does not appear to have any distinguishing labels that would indicate anything about the source or purpose of the data set. Under normal circumstances, context about data and use case is important for forecasting. Context may help identify the kinds of methods and models that would be best suited to produce an accurate result - following the "no free lunch" principle. 
-
-Boxplots: Var02 has the most outliers but this is also the column with the largest range in values
-
-```{r warning=FALSE, fig.width=10, fig.height=8}
-p1 <- ggplot(df, aes(category, Var01)) +
-  geom_boxplot()
-p2 <- ggplot(df, aes(category, Var02)) +
-  geom_boxplot()
-p3 <- ggplot(df, aes(category, Var03)) +
-  geom_boxplot()
-p4 <- ggplot(df, aes(category, Var05)) +
-  geom_boxplot()
-p5 <- ggplot(df, aes(category, Var07)) +
-  geom_boxplot()
-
-p1+p2+p3+p4+p5+
-  plot_layout(ncol = 2)
+(p1+p2)/(p3+p4)/(p5+p6)
 ```
 
 All predictors are left skewed so transformations are needed for each column
 
 ```{r warning=FALSE, fig.width=10, fig.height=7}
-p1 <- ggplot(df, aes(Var01, color=category)) +
-  geom_density()
-p2 <- ggplot(df, aes(Var02, color=category)) +
-  geom_density()
-p3 <- ggplot(df, aes(Var03, color=category)) +
-  geom_density()
-p4 <- ggplot(df, aes(Var05, color=category)) +
-  geom_density()
-p5 <- ggplot(df, aes(Var07, color=category)) +
-  geom_density()
+p1 <- ggplot(df, aes(Var01, fill=category)) +
+  geom_density(alpha = 0.5)
+p2 <- ggplot(df, aes(Var02, fill=category)) +
+  geom_density(alpha = 0.5)
+p3 <- ggplot(df, aes(Var03, fill=category)) +
+  geom_density(alpha = 0.5)
+p4 <- ggplot(df, aes(Var05, fill=category)) +
+  geom_density(alpha = 0.5)
+p5 <- ggplot(df, aes(Var07, fill=category)) +
+  geom_density(alpha = 0.5)
 
 p1+p2+p3+p4+p5+
   plot_layout(ncol = 2)
@@ -242,98 +232,6 @@ p5 <- ggplot(df_transformed, aes(Var07, color=category)) +
 p1+p2+p3+p4+p5+
   plot_layout(ncol = 2)
 ```
-
-```{r}
-s01 <- df_transformed %>% dplyr::filter(category == "S01")
-s02 <- df_transformed %>% dplyr::filter(category == "S02")
-s03 <- df_transformed %>% dplyr::filter(category == "S03")
-s04 <- df_transformed %>% dplyr::filter(category == "S04")
-s05 <- df_transformed %>% dplyr::filter(category == "S05")
-s06 <- df_transformed %>% dplyr::filter(category == "S06")
-```
-
-Testing conversion using at.Date so each row is a date with no time.
-```{r}
-df_test <- read_excel("data.xls")
-head(df_test)
-tail(df_test)
-
-# Converting Var02 to Datetime
-df_test$SeriesInd <- as.Date(df_test$SeriesInd, origin = "1899-12-30")
-
-
-# Renaming SeriesInd to Date to clarify purpose
-df_test <- df_test %>% rename("Date" = SeriesInd)
-summary(df_test)
-
-#new imputation
-preProcess_NAdata_model <- preProcess(as.data.frame(df_test), method ="medianImpute")
-
-df_test <- predict(preProcess_NAdata_model, newdata = df_test)
-
-paste0(sum(is.na(df_test))," values missing after imputation")
-
-#new subsets with data conversion
-s01_2 <- df %>% filter(category == "S01")
-s02_2 <- df %>% filter(category == "S02")
-s03_2 <- df %>% filter(category == "S03")
-s04_2 <- df %>% filter(category == "S04")
-s05_2 <- df %>% filter(category == "S05")
-s06_2 <- df %>% filter(category == "S06")
-```
-
-
-create time series for each subset using the dataframe with dates
-```{r}
-s01_ts <- ts(s01_2[,"Var01"], frequency = 7, start = c(2011, 5), end = c(2018, 5))
-s02_ts <- ts(s02_2[,"Var01"], frequency = 7, start = c(2011, 5), end = c(2018, 5))
-s03_ts <- ts(s03_2[,"Var01"], frequency = 7, start = c(2011, 5), end = c(2018, 5))
-s04_ts <- ts(s04_2[,"Var01"], frequency = 7, start = c(2011, 5), end = c(2018, 5))
-s05_ts <- ts(s05_2[,"Var01"], frequency = 7, start = c(2011, 5), end = c(2018, 5))
-s06_ts <- ts(s06_2[,"Var01"], frequency = 7, start = c(2011, 5), end = c(2018, 5))
-```
-
-Test Autoplots and seasonal plots for S01
-```{r fig.width=10, fig.height=10}
-autoplot(s01_ts) / ggseasonplot(s01_ts) / ggsubseriesplot(s01_ts) / ggAcf(s01_ts)
-```
-```{r}
-gglagplot(s01_ts)
-```
-
-Forecasting S01 with decomposition
-```{r}
-#STL using default values
-fit_stl <- stl(s01_ts, s.window = "periodic")
-
-#forecast of seasonaly adjusted data
-fit_stl %>% seasadj() %>% naive()%>%
-  autoplot()
-
-#forecast from SLT + Random walk
-fit_stl %>% forecast(method="naive") %>%
-  autoplot()
-
-#forecast from Holt-Winters
-hw <- HoltWinters(s01_ts) 
-
-hw %>% forecast() %>%
-  autoplot()
-
-
-```
-
-```{r}
-#simple exponential smoothing since there is no clear trend of seasonal pattern for S01
-fit_ets <- ets(s01_ts)
-summary(fit_ets)
-autoplot(fit_ets)
-
-fit_ets %>% forecast(h=5) %>%
-  autoplot()
-```
-
-
 
 
 
