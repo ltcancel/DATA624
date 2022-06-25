@@ -34,6 +34,8 @@ library(fpp2)
 library(caret)
 library(RANN)
 library(VIM)
+library(ggpubr)
+library(gridExtra)
 ```
 
 # Project Summary
@@ -328,47 +330,316 @@ s06_2 <- df %>% filter(category == "S06")
 
 create time series for each subset using the dataframe with dates
 ```{r}
-s01_ts <- ts(s01_2[,"Var01"], frequency = 7, start = c(2011, 5), end = c(2018, 5))
-s02_ts <- ts(s02_2[,"Var01"], frequency = 7, start = c(2011, 5), end = c(2018, 5))
-s03_ts <- ts(s03_2[,"Var01"], frequency = 7, start = c(2011, 5), end = c(2018, 5))
-s04_ts <- ts(s04_2[,"Var01"], frequency = 7, start = c(2011, 5), end = c(2018, 5))
-s05_ts <- ts(s05_2[,"Var01"], frequency = 7, start = c(2011, 5), end = c(2018, 5))
-s06_ts <- ts(s06_2[,"Var01"], frequency = 7, start = c(2011, 5), end = c(2018, 5))
+s01_ts <- ts(s01_2[,c("Var01","Var02")], frequency = 12, start = c(2011, 5), end = c(2018, 5))
+s02_ts <- ts(s02_2[,c("Var02","Var03")], frequency = 12, start = c(2011, 5), end = c(2018, 5))
+s03_ts <- ts(s03_2[,c("Var05","Var07")], frequency = 12, start = c(2011, 5), end = c(2018, 5))
+s04_ts <- ts(s04_2[,c("Var01","Var02")], frequency = 12, start = c(2011, 5), end = c(2018, 5))
+s05_ts <- ts(s05_2[,c("Var02","Var03")], frequency = 12, start = c(2011, 5), end = c(2018, 5))
+s06_ts <- ts(s06_2[,c("Var05","Var07")], frequency = 12, start = c(2011, 5), end = c(2018, 5))
 ```
 
-Test Autoplots and seasonal plots for S01
-```{r fig.width=10, fig.height=10}
-autoplot(s01_ts) / ggseasonplot(s01_ts) / ggsubseriesplot(s01_ts) / ggAcf(s01_ts)
-```
-```{r}
-gglagplot(s01_ts)
+
+Autoplots and seasonal plots for S01
+```{r fig.width=15, fig.height=15}
+(autoplot(s01_ts, facets = 2)) / 
+  (ggseasonplot(s01_ts[,1], main = "Var01") + ggseasonplot(s01_ts[,2], main = "Var02")) / 
+  (ggsubseriesplot(s01_ts[,1]) + ggsubseriesplot(s01_ts[,2])) / 
+  (ggAcf(s01_ts[,2], main = "") + ggAcf(s01_ts[,2], main = ""))
 ```
 
-Forecasting S01 with decomposition
-```{r}
+Autoplots and seasonal plots for S02
+```{r fig.width=15, fig.height=15}
+(autoplot(s02_ts, facets = 2)) / 
+  (ggseasonplot(s02_ts[,1], main = "Var02") + ggseasonplot(s02_ts[,2], main = "Var03")) / 
+  (ggsubseriesplot(s02_ts[,1]) + ggsubseriesplot(s02_ts[,2])) / 
+  (ggAcf(s02_ts[,2], main = "") + ggAcf(s02_ts[,2], main = ""))
+```
+
+Autoplots and seasonal plots for S03
+```{r fig.width=15, fig.height=15}
+(autoplot(s03_ts, facets = 2)) / 
+  (ggseasonplot(s03_ts[,1], main = "Var05") + ggseasonplot(s03_ts[,2], main = "Var07")) / 
+  (ggsubseriesplot(s03_ts[,1]) + ggsubseriesplot(s03_ts[,2])) / 
+  (ggAcf(s03_ts[,2], main = "") + ggAcf(s03_ts[,2], main = ""))
+```
+
+Autoplots and seasonal plots for S04
+```{r fig.width=15, fig.height=15}
+(autoplot(s04_ts, facets = 2)) / 
+  (ggseasonplot(s04_ts[,1], main = "Var01") + ggseasonplot(s04_ts[,2], main = "Var02")) / 
+  (ggsubseriesplot(s04_ts[,1]) + ggsubseriesplot(s04_ts[,2])) / 
+  (ggAcf(s04_ts[,2], main = "") + ggAcf(s04_ts[,2], main = ""))
+```
+
+Autoplots and seasonal plots for S05
+```{r fig.width=15, fig.height=15}
+(autoplot(s05_ts, facets = 2)) / 
+  (ggseasonplot(s05_ts[,1], main = "Var02") + ggseasonplot(s05_ts[,2], main = "Var03")) / 
+  (ggsubseriesplot(s05_ts[,1]) + ggsubseriesplot(s05_ts[,2])) / 
+  (ggAcf(s05_ts[,2], main = "") + ggAcf(s05_ts[,2], main = ""))
+```
+
+Autoplots and seasonal plots for S06
+```{r fig.width=15, fig.height=15}
+(autoplot(s06_ts, facets = 2)) / 
+  (ggseasonplot(s06_ts[,1], main = "Var05") + ggseasonplot(s06_ts[,2], main = "Var07")) / 
+  (ggsubseriesplot(s06_ts[,1]) + ggsubseriesplot(s06_ts[,2])) / 
+  (ggAcf(s06_ts[,2], main = "") + ggAcf(s06_ts[,2], main = ""))
+```
+
+
+```{r echo=TRUE, eval = FALSE, results='hide'}
+p1 <- (gglagplot(s01_ts[,1]) + theme(legend.position = "none") + gglagplot(s01_ts[,2]) + theme(legend.position = "none") )
+p2 <- gglagplot(s02_ts[,1]) + theme(legend.position = "none") + gglagplot(s02_ts[,2]) + theme(legend.position = "none")
+p3 <- gglagplot(s03_ts[,1]) + theme(legend.position = "none") + gglagplot(s03_ts[,2])
+p4 <- gglagplot(s04_ts[,1]) + theme(legend.position = "none") + gglagplot(s04_ts[,2]) + theme(legend.position = "none")
+p5 <- gglagplot(s05_ts[,1]) + theme(legend.position = "none") + gglagplot(s05_ts[,2]) + theme(legend.position = "none")
+p6 <- gglagplot(s06_ts[,1]) + theme(legend.position = "none") + gglagplot(s06_ts[,2]) 
+
+```
+```{r fig.width=20}
+grid.arrange(p1, p2, p3, p4, p5, p6, nrow = 2)
+```
+
+
+Forecasting S01: Var01 & Var02 with decomposition
+```{r fig.height=10, fig.width=15}
 #STL using default values
-fit_stl <- stl(s01_ts, s.window = "periodic")
+fit_stl_1 <- stl(s01_ts[,1], s.window = "periodic")
+
+#STL using default values
+fit_stl_2 <- stl(s01_ts[,2], s.window = "periodic")
 
 #forecast of seasonaly adjusted data
-fit_stl %>% seasadj() %>% naive()%>%
-  autoplot()
+f1 <- fit_stl_1 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S01: Var01")
+
+#forecast of seasonaly adjusted data
+f2 <- fit_stl_2 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S01: Var02")
 
 #forecast from SLT + Random walk
-fit_stl %>% forecast(method="naive") %>%
-  autoplot()
+f3 <- fit_stl_1 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S01: Var01")
+
+#forecast from SLT + Random walk
+f4 <- fit_stl_2 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S01: Var02")
 
 #forecast from Holt-Winters
-hw <- HoltWinters(s01_ts) 
+hw1 <- HoltWinters(s01_ts[,1])
 
-hw %>% forecast() %>%
-  autoplot()
+#forecast from Holt-Winters
+hw2 <- HoltWinters(s01_ts[,2])
 
+f5 <- hw1 %>% forecast() %>%
+  autoplot() + ylab("S01: Var01")
 
+f6 <- hw2 %>% forecast() %>%
+  autoplot() + ylab("S01: Var02")
+
+(f1 + f2) / (f3 + f4) / (f5 + f6)
 ```
+
+Forecasting S02: Var02 & Var03 with decomposition
+```{r fig.height=10, fig.width=15}
+#STL using default values
+fit_stl_1 <- stl(s02_ts[,1], s.window = "periodic")
+
+#STL using default values
+fit_stl_2 <- stl(s02_ts[,2], s.window = "periodic")
+
+#forecast of seasonaly adjusted data
+f1 <- fit_stl_1 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S02: Var02")
+
+#forecast of seasonaly adjusted data
+f2 <- fit_stl_2 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S02: Var03")
+
+#forecast from SLT + Random walk
+f3 <- fit_stl_1 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S02: Var02")
+
+#forecast from SLT + Random walk
+f4 <- fit_stl_2 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S02: Var03")
+
+#forecast from Holt-Winters
+hw1 <- HoltWinters(s02_ts[,1])
+
+#forecast from Holt-Winters
+hw2 <- HoltWinters(s02_ts[,2])
+
+f5 <- hw1 %>% forecast() %>%
+  autoplot() + ylab("S02: Var02")
+
+f6 <- hw2 %>% forecast() %>%
+  autoplot() + ylab("S02: Var03")
+
+(f1 + f2) / (f3 + f4) / (f5 + f6)
+```
+
+Forecasting S03: Var05 & Var07 with decomposition
+```{r fig.height=10, fig.width=15}
+#STL using default values
+fit_stl_1 <- stl(s03_ts[,1], s.window = "periodic")
+
+#STL using default values
+fit_stl_2 <- stl(s03_ts[,2], s.window = "periodic")
+
+#forecast of seasonaly adjusted data
+f1 <- fit_stl_1 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S03: Var05")
+
+#forecast of seasonaly adjusted data
+f2 <- fit_stl_2 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S03: Var07")
+
+#forecast from SLT + Random walk
+f3 <- fit_stl_1 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S03: Var05")
+
+#forecast from SLT + Random walk
+f4 <- fit_stl_2 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S03: Var07")
+
+#forecast from Holt-Winters
+hw1 <- HoltWinters(s03_ts[,1])
+
+#forecast from Holt-Winters
+hw2 <- HoltWinters(s03_ts[,2])
+
+f5 <- hw1 %>% forecast() %>%
+  autoplot() + ylab("S03: Var05")
+
+f6 <- hw2 %>% forecast() %>%
+  autoplot() + ylab("S03: Var07")
+
+(f1 + f2) / (f3 + f4) / (f5 + f6)
+```
+
+Forecasting S04: Var01 & Var02 with decomposition
+```{r fig.height=10, fig.width=15}
+#STL using default values
+fit_stl_1 <- stl(s04_ts[,1], s.window = "periodic")
+
+#STL using default values
+fit_stl_2 <- stl(s04_ts[,2], s.window = "periodic")
+
+#forecast of seasonaly adjusted data
+f1 <- fit_stl_1 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S04: Var01")
+
+#forecast of seasonaly adjusted data
+f2 <- fit_stl_2 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S04: Var02")
+
+#forecast from SLT + Random walk
+f3 <- fit_stl_1 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S04: Var01")
+
+#forecast from SLT + Random walk
+f4 <- fit_stl_2 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S04: Var02")
+
+#forecast from Holt-Winters
+hw1 <- HoltWinters(s04_ts[,1])
+
+#forecast from Holt-Winters
+hw2 <- HoltWinters(s04_ts[,2])
+
+f5 <- hw1 %>% forecast() %>%
+  autoplot() + ylab("S04: Var01")
+
+f6 <- hw2 %>% forecast() %>%
+  autoplot() + ylab("S04: Var02")
+
+(f1 + f2) / (f3 + f4) / (f5 + f6)
+```
+
+Forecasting S05: Var02 & Var03 with decomposition
+```{r fig.height=10, fig.width=15}
+#STL using default values
+fit_stl_1 <- stl(s05_ts[,1], s.window = "periodic")
+
+#STL using default values
+fit_stl_2 <- stl(s05_ts[,2], s.window = "periodic")
+
+#forecast of seasonaly adjusted data
+f1 <- fit_stl_1 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S05: Var02")
+
+#forecast of seasonaly adjusted data
+f2 <- fit_stl_2 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S05: Var03")
+
+#forecast from SLT + Random walk
+f3 <- fit_stl_1 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S05: Var02")
+
+#forecast from SLT + Random walk
+f4 <- fit_stl_2 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S05: Var03")
+
+#forecast from Holt-Winters
+hw1 <- HoltWinters(s05_ts[,1])
+
+#forecast from Holt-Winters
+hw2 <- HoltWinters(s05_ts[,2])
+
+f5 <- hw1 %>% forecast() %>%
+  autoplot() + ylab("S05: Var02")
+
+f6 <- hw2 %>% forecast() %>%
+  autoplot() + ylab("S05: Var03")
+
+(f1 + f2) / (f3 + f4) / (f5 + f6)
+```
+
+Forecasting S06: Var05 & Var07 with decomposition
+```{r fig.height=10, fig.width=15}
+#STL using default values
+fit_stl_1 <- stl(s06_ts[,1], s.window = "periodic")
+
+#STL using default values
+fit_stl_2 <- stl(s06_ts[,2], s.window = "periodic")
+
+#forecast of seasonaly adjusted data
+f1 <- fit_stl_1 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S06: Var05")
+
+#forecast of seasonaly adjusted data
+f2 <- fit_stl_2 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S06: Var07")
+
+#forecast from SLT + Random walk
+f3 <- fit_stl_1 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S06: Var05")
+
+#forecast from SLT + Random walk
+f4 <- fit_stl_2 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S06: Var07")
+
+#forecast from Holt-Winters
+hw1 <- HoltWinters(s06_ts[,1])
+
+#forecast from Holt-Winters
+hw2 <- HoltWinters(s06_ts[,2])
+
+f5 <- hw1 %>% forecast() %>%
+  autoplot() + ylab("S06: Var05")
+
+f6 <- hw2 %>% forecast() %>%
+  autoplot() + ylab("S06: Var07")
+
+(f1 + f2) / (f3 + f4) / (f5 + f6)
+```
+
 
 ```{r}
 #simple exponential smoothing since there is no clear trend of seasonal pattern for S01
-fit_ets <- ets(s01_ts)
+fit_ets <- ets(s01_ts[,1])
 summary(fit_ets)
 autoplot(fit_ets)
 
