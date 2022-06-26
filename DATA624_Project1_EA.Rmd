@@ -1,0 +1,1078 @@
+---
+title: "Data624 - Project 1"
+author: "Esteban Aramayo, Coffy Andrews-Guo, LeTicia Cancel, Joseph Connolly, Ian Costello"
+date: '2022-06-21'
+output: 
+  html_document:
+    toc: yes
+    toc_float: yes
+    toc_depth: 2
+  word_document:
+    toc: yes
+    toc_depth: '2'
+---
+
+
+```{r global-options, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE,
+                      message=FALSE,
+                      collapse = FALSE,
+                      comment = "#>" )
+```
+
+
+
+```{r echo=FALSE}
+# install from CRAN
+#install.packages("officedown")
+# or GitHub
+#remotes::install_github("davidgohel/officedown")
+```
+
+Required Libraries
+```{r warning=FALSE, message=FALSE}
+library(readxl)
+library(tidyverse)
+library(ggplot2)
+library(patchwork)
+library(fpp2)
+library(caret)
+library(RANN)
+library(VIM)
+library(ggpubr)
+library(gridExtra)
+library(forecast)
+```
+
+# Project Summary
+
+De-identified data was provided to conduct a series of six forecasts of different variables of a provided data set. There are two major requirements of this project:
+
+1. This written report
+2. The forecasts and error rates
+
+```{r}
+df <- read_excel("data.xls")
+head(df)
+```
+
+## Data Cleaning & Imputation
+
+```{r}
+# Factoring category to get a count of the elements within dataset
+df$category <- as.factor(df$category)
+summary(df)
+```
+
+- All groups are equal in length
+
+- Columns 5-7 (Var03, Var04, Var07) all have same amount of missing values. Very close quartile and min/max values, comparable to column 3 (Var01). Column 4 (Var02) has values that are significantly larger 
+
+#### Data Structure
+```{r}
+str(df)
+```
+
+
+## Data Exploration
+
+```{r}
+dim(df)
+```
+
+##### Handling Missing Data
+
+```{r}
+paste0(sum(is.na(df))," values missing from original set")
+```
+
+- The dilemma is to decide whether or not it is appropriate to perform an analysis via imputing missing values, or to simply delete them. According to the plot below, generated via "VIM::aggr()", 91.81% of the data is fulfilled. Var01, Var02, Var03, Var05, and Var07 are missing about 8% of data. At first impression, this seems like an insignificant amount of data that can be omitted from the set. Further investigation is needed to confirm this impression, and deletion will be deemed appropriate when the data is found to be missing completely at random (MCAR) 
+
+```{r fig.width=10}
+# Plots of missing values
+aggr_plot <- VIM::aggr(df, col = c("navyblue", "orange"), 
+                  numbers = T, sortVars = T,
+                  labels = names(df),
+                  cex.axis = 0.7, gap = 3,
+                  ylab = c("Frequency of Missing Data", "Pattern"))
+```
+
+##### Impute or Delete?
+
+- An excerpt from the following paper, $\underline{The\ prevention\ and\ handling\ of\ the\ missing\ data}$, by Hyun Kang, argues when deletion is appropriate or not from the following quote: *"...if the assumption of MCAR (missing completely at random) is satisfied, a listwise deletion is known to produce unbiased estimates and conservative results. When the data do not fulfill the assumption of MCAR, listwise deletion may cause bias in the estimates of the parameters. If there is a large enough sample, where power is not an issue, and the assumption of MCAR is satisfied, the listwise deletion may be a reasonable strategy. However, when there is not a large sample, or the assumption of MCAR is not satisfied, the listwise deletion is not the optimal strategy"* [$^1$](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3668100/)
+
+Creating a shadow matrix to see missing values will indicate whether or not the data is MCAR. 1 indicates all values are present, and anything else indicates the ratio/percentage of missing values correlated among each other [$^2$](https://stats.stackexchange.com/questions/172316/a-statistical-approach-to-determine-if-data-are-missing-at-random)
+
+
+```{r}
+# Shadow Matrix: correlation of missing values from the dataset
+x <- as.data.frame(abs(is.na(df))) 
+y <- x[which(sapply(x, sd) >0)] # Extracts which variables are missing/NA from the dataset
+cor(y) # Tendency of NA when correlated among variables
+```
+
+Aside from considering values correlated with themselves, the following have no missing values when correlated with others:
+
+  - Var03 has no missing values when correlated with Var05 and Var07
+  
+  - Var05 has no missing values when correlated with Var03 and Var07
+  
+  - Var07 has no missing values when correlated with Var03 and Var05
+  
+Taking these observations into consideration, it seems there appears to be bias in the data in the context of missing data. Therefore, it seems appropriate to impute the data for missing values since there is evidence they are not missing completely at random.
+
+##### Data Imputation
+
+- Imputation via "medianImpute" method within "preProcess()" function
+
+```{r}
+preProcess_NAdata_model <- preProcess(as.data.frame(df), method ="medianImpute")
+df <- predict(preProcess_NAdata_model, newdata = df)
+paste0(sum(is.na(df))," values missing after imputation")
+```
+
+- No data is missing after imputation
+- No discrepencies in the data after imputation.
+
+```{r}
+summary(df)
+```
+
+
+##### Datetime conversion
+
+- It was found that column 1, "SeriesInd" is a datetime column. Datetime conversion is to be performed after imputation in order to ensure a successful imputation
+
+```{r}
+# Converting SeriesInd to Datetime
+df$SeriesInd <- as.integer(df$SeriesInd)
+df$SeriesInd <- as.POSIXct(df$SeriesInd, origin = "1970-01-01")
+# Renaming SeriesInd to Date to clarify purpose
+df <- df %>% rename("Datetime" = SeriesInd)
+summary(df)
+```
+
+##### Final susbets 
+
+```{r}
+# For forecasting later on
+s01 <- df %>% filter(category == "S01")
+s02 <- df %>% filter(category == "S02")
+s03 <- df %>% filter(category == "S03")
+s04 <- df %>% filter(category == "S04")
+s05 <- df %>% filter(category == "S05")
+s06 <- df %>% filter(category == "S06")
+```
+
+## Data Exploration
+
+The data set does not appear to have any distinguishing labels that would indicate anything about the source or purpose of the data set. Under normal circumstances, context about data and use case is important for forecasting. Context may help identify the kinds of methods and models that would be best suited to produce an accurate result - following the "no free lunch" principle. 
+
+Boxplots: Var02 has the most outliers but this is also the column with the largest range in values
+
+```{r warning=FALSE, fig.width=10, fig.height=8}
+p1 <- ggplot(df, aes(category, Var01)) +
+  geom_boxplot()
+p2 <- ggplot(df, aes(category, Var02)) +
+  geom_boxplot()
+p3 <- ggplot(df, aes(category, Var03)) +
+  geom_boxplot()
+p4 <- ggplot(df, aes(category, Var05)) +
+  geom_boxplot()
+p5 <- ggplot(df, aes(category, Var07)) +
+  geom_boxplot()
+```
+
+
+## Data Visualization - Predictors
+
+A time series that contain a list of numbers (the measurements), along with some information about what times those numbers were recorded (the index). 
+
+
+*Box plots*
+
+- Var02 has the most outliers but this is also the column with the largest range in values
+```{r warning=FALSE, message=FALSE, fig.width=6, fig.height=8}
+p1 <- ggplot(df, aes(Var01, fill = category)) +
+  geom_boxplot(outlier.color = "red", outlier.size = 3)
+p2 <- ggplot(df, aes(Var02, fill = category)) +
+  geom_boxplot(outlier.color = "red", outlier.size = 3)
+p3 <- ggplot(df, aes(Var03, fill = category)) +
+  geom_boxplot(outlier.color = "red", outlier.size = 3)
+p4 <- ggplot(df, aes(Var05, fill = category)) +
+  geom_boxplot(outlier.color = "red", outlier.size = 3)
+p5 <- ggplot(df, aes(Var07, fill = category)) +
+  geom_boxplot(outlier.color = "red", outlier.size = 3)
+p6 <- ggplot(df, aes(Datetime, fill = category)) + 
+  geom_boxplot(outlier.color = "red", outlier.size = 10)
+(p1+p2)/(p3+p4)/(p5+p6)
+```
+
+All predictors are right skewed so transformations are needed for each column
+
+```{r warning=FALSE, fig.width=10, fig.height=7}
+p1 <- ggplot(df, aes(Var01, fill=category)) +
+  geom_density(alpha = 0.5)
+p2 <- ggplot(df, aes(Var02, fill=category)) +
+  geom_density(alpha = 0.5)
+p3 <- ggplot(df, aes(Var03, fill=category)) +
+  geom_density(alpha = 0.5)
+p4 <- ggplot(df, aes(Var05, fill=category)) +
+  geom_density(alpha = 0.5)
+p5 <- ggplot(df, aes(Var07, fill=category)) +
+  geom_density(alpha = 0.5)
+p1+p2+p3+p4+p5+
+  plot_layout(ncol = 2)
+```
+
+## Data transformations
+
+Var02 is the most skewed
+```{r}
+library(moments)
+skewness(df$Var01)
+skewness(df$Var02)
+skewness(df$Var03)
+skewness(df$Var05)
+skewness(df$Var07)
+```
+
+Experimenting with 3 different transformations; log, square root, and cube root. The log transformation looks the most normalized
+
+```{r error=FALSE}
+log_var01 <- log10(df$Var01)
+sqrt_var01 <- sqrt(df$Var01)
+cube_var01 <- df$Var01^(1/3)
+hist(df$Var01)
+hist(log_var01)
+hist(sqrt_var01)
+hist(cube_var01)
+```
+
+Transform all predictors using log transformation
+
+```{r}
+df_transformed <- df
+df_transformed$Var01 <- log10(df$Var01)
+df_transformed$Var02 <- log10(df$Var02)
+df_transformed$Var03 <- log10(df$Var03)
+df_transformed$Var05 <- log10(df$Var05)
+df_transformed$Var07 <- log10(df$Var07)
+```
+
+New plots using transformed dataframe. Var02 is the most normalize so I will try different transformations with the other columns
+
+```{r warning=FALSE, fig.width=10, fig.height=7}
+p1 <- ggplot(df_transformed, aes(Var01, color=category)) +
+  geom_density()
+p2 <- ggplot(df_transformed, aes(Var02, color=category)) +
+  geom_density()
+p3 <- ggplot(df_transformed, aes(Var03, color=category)) +
+  geom_density()
+p4 <- ggplot(df_transformed, aes(Var05, color=category)) +
+  geom_density()
+p5 <- ggplot(df_transformed, aes(Var07, color=category)) +
+  geom_density()
+p1+p2+p3+p4+p5+
+  plot_layout(ncol = 2)
+```
+
+```{r}
+s01 <- df_transformed %>% dplyr::filter(category == "S01")
+s02 <- df_transformed %>% dplyr::filter(category == "S02")
+s03 <- df_transformed %>% dplyr::filter(category == "S03")
+s04 <- df_transformed %>% dplyr::filter(category == "S04")
+s05 <- df_transformed %>% dplyr::filter(category == "S05")
+s06 <- df_transformed %>% dplyr::filter(category == "S06")
+```
+
+Testing conversion using as.Date so each row is a date with no time.
+```{r}
+df_test <- read_excel("data.xls")
+head(df_test)
+tail(df_test)
+# Converting SeriesInd to Datetime
+df_test$SeriesInd <- as.Date(df_test$SeriesInd, origin = "1899-12-30")
+# Renaming SeriesInd to Date to clarify purpose
+df_test <- df_test %>% rename("Date" = SeriesInd)
+summary(df_test)
+#new imputation
+preProcess_NAdata_model <- preProcess(as.data.frame(df_test), method ="medianImpute")
+df_test <- predict(preProcess_NAdata_model, newdata = df_test)
+paste0(sum(is.na(df_test))," values missing after imputation")
+#new subsets with data conversion
+s01_2 <- df %>% filter(category == "S01")
+s02_2 <- df %>% filter(category == "S02")
+s03_2 <- df %>% filter(category == "S03")
+s04_2 <- df %>% filter(category == "S04")
+s05_2 <- df %>% filter(category == "S05")
+s06_2 <- df %>% filter(category == "S06")
+```
+
+
+create time series for each subset using the dataframe with dates
+```{r}
+s01_ts <- ts(s01_2[,c("Var01","Var02")], frequency = 12, start = c(2011, 5), end = c(2018, 5))
+s02_ts <- ts(s02_2[,c("Var02","Var03")], frequency = 12, start = c(2011, 5), end = c(2018, 5))
+s03_ts <- ts(s03_2[,c("Var05","Var07")], frequency = 12, start = c(2011, 5), end = c(2018, 5))
+s04_ts <- ts(s04_2[,c("Var01","Var02")], frequency = 12, start = c(2011, 5), end = c(2018, 5))
+s05_ts <- ts(s05_2[,c("Var02","Var03")], frequency = 12, start = c(2011, 5), end = c(2018, 5))
+s06_ts <- ts(s06_2[,c("Var05","Var07")], frequency = 12, start = c(2011, 5), end = c(2018, 5))
+```
+
+
+Autoplots and seasonal plots for S01
+```{r fig.width=15, fig.height=15}
+(autoplot(s01_ts, facets = 2)) / 
+  (ggseasonplot(s01_ts[,1], main = "Var01") + ggseasonplot(s01_ts[,2], main = "Var02")) / 
+  (ggsubseriesplot(s01_ts[,1]) + ggsubseriesplot(s01_ts[,2])) / 
+  (ggAcf(s01_ts[,2], main = "") + ggAcf(s01_ts[,2], main = ""))
+```
+
+Autoplots and seasonal plots for S02
+```{r fig.width=15, fig.height=15}
+(autoplot(s02_ts, facets = 2)) / 
+  (ggseasonplot(s02_ts[,1], main = "Var02") + ggseasonplot(s02_ts[,2], main = "Var03")) / 
+  (ggsubseriesplot(s02_ts[,1]) + ggsubseriesplot(s02_ts[,2])) / 
+  (ggAcf(s02_ts[,2], main = "") + ggAcf(s02_ts[,2], main = ""))
+```
+
+Autoplots and seasonal plots for S03
+```{r fig.width=15, fig.height=15}
+(autoplot(s03_ts, facets = 2)) / 
+  (ggseasonplot(s03_ts[,1], main = "Var05") + ggseasonplot(s03_ts[,2], main = "Var07")) / 
+  (ggsubseriesplot(s03_ts[,1]) + ggsubseriesplot(s03_ts[,2])) / 
+  (ggAcf(s03_ts[,2], main = "") + ggAcf(s03_ts[,2], main = ""))
+```
+
+Autoplots and seasonal plots for S04
+```{r fig.width=15, fig.height=15}
+(autoplot(s04_ts, facets = 2)) / 
+  (ggseasonplot(s04_ts[,1], main = "Var01") + ggseasonplot(s04_ts[,2], main = "Var02")) / 
+  (ggsubseriesplot(s04_ts[,1]) + ggsubseriesplot(s04_ts[,2])) / 
+  (ggAcf(s04_ts[,2], main = "") + ggAcf(s04_ts[,2], main = ""))
+```
+
+Autoplots and seasonal plots for S05
+```{r fig.width=15, fig.height=15}
+(autoplot(s05_ts, facets = 2)) / 
+  (ggseasonplot(s05_ts[,1], main = "Var02") + ggseasonplot(s05_ts[,2], main = "Var03")) / 
+  (ggsubseriesplot(s05_ts[,1]) + ggsubseriesplot(s05_ts[,2])) / 
+  (ggAcf(s05_ts[,2], main = "") + ggAcf(s05_ts[,2], main = ""))
+```
+
+Autoplots and seasonal plots for S06
+```{r fig.width=15, fig.height=15}
+(autoplot(s06_ts, facets = 2)) / 
+  (ggseasonplot(s06_ts[,1], main = "Var05") + ggseasonplot(s06_ts[,2], main = "Var07")) / 
+  (ggsubseriesplot(s06_ts[,1]) + ggsubseriesplot(s06_ts[,2])) / 
+  (ggAcf(s06_ts[,2], main = "") + ggAcf(s06_ts[,2], main = ""))
+```
+
+
+```{r echo=TRUE, eval = FALSE, results='hide'}
+p1 <- (gglagplot(s01_ts[,1]) + theme(legend.position = "none") + gglagplot(s01_ts[,2]) + theme(legend.position = "none") )
+p2 <- gglagplot(s02_ts[,1]) + theme(legend.position = "none") + gglagplot(s02_ts[,2]) + theme(legend.position = "none")
+p3 <- gglagplot(s03_ts[,1]) + theme(legend.position = "none") + gglagplot(s03_ts[,2])
+p4 <- gglagplot(s04_ts[,1]) + theme(legend.position = "none") + gglagplot(s04_ts[,2]) + theme(legend.position = "none")
+p5 <- gglagplot(s05_ts[,1]) + theme(legend.position = "none") + gglagplot(s05_ts[,2]) + theme(legend.position = "none")
+p6 <- gglagplot(s06_ts[,1]) + theme(legend.position = "none") + gglagplot(s06_ts[,2]) 
+```
+```{r fig.width=20}
+grid.arrange(p1, p2, p3, p4, p5, p6, nrow = 2)
+```
+
+
+## Data Modeling and Forecasting
+
+
+### Forecasting with Decomposition
+
+#### Forecasting S01: Var01 & Var02 with decomposition
+
+```{r fig.height=10, fig.width=15}
+#STL using default values
+fit_stl_1 <- stl(s01_ts[,1], s.window = "periodic")
+#STL using default values
+fit_stl_2 <- stl(s01_ts[,2], s.window = "periodic")
+#forecast of seasonaly adjusted data
+f1 <- fit_stl_1 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S01: Var01")
+#forecast of seasonaly adjusted data
+f2 <- fit_stl_2 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S01: Var02")
+#forecast from SLT + Random walk
+f3 <- fit_stl_1 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S01: Var01")
+#forecast from SLT + Random walk
+f4 <- fit_stl_2 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S01: Var02")
+#forecast from Holt-Winters
+hw1 <- HoltWinters(s01_ts[,1])
+#forecast from Holt-Winters
+hw2 <- HoltWinters(s01_ts[,2])
+f5 <- hw1 %>% forecast() %>%
+  autoplot() + ylab("S01: Var01")
+f6 <- hw2 %>% forecast() %>%
+  autoplot() + ylab("S01: Var02")
+(f1 + f2) / (f3 + f4) / (f5 + f6)
+```
+
+
+#### Forecasting S02: Var02 & Var03 with decomposition
+
+```{r fig.height=10, fig.width=15}
+#STL using default values
+fit_stl_1 <- stl(s02_ts[,1], s.window = "periodic")
+#STL using default values
+fit_stl_2 <- stl(s02_ts[,2], s.window = "periodic")
+#forecast of seasonaly adjusted data
+f1 <- fit_stl_1 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S02: Var02")
+#forecast of seasonaly adjusted data
+f2 <- fit_stl_2 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S02: Var03")
+#forecast from SLT + Random walk
+f3 <- fit_stl_1 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S02: Var02")
+#forecast from SLT + Random walk
+f4 <- fit_stl_2 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S02: Var03")
+#forecast from Holt-Winters
+hw1 <- HoltWinters(s02_ts[,1])
+#forecast from Holt-Winters
+hw2 <- HoltWinters(s02_ts[,2])
+f5 <- hw1 %>% forecast() %>%
+  autoplot() + ylab("S02: Var02")
+f6 <- hw2 %>% forecast() %>%
+  autoplot() + ylab("S02: Var03")
+(f1 + f2) / (f3 + f4) / (f5 + f6)
+```
+
+
+#### Forecasting S03: Var05 & Var07 with decomposition
+
+```{r fig.height=10, fig.width=15}
+#STL using default values
+fit_stl_1 <- stl(s03_ts[,1], s.window = "periodic")
+#STL using default values
+fit_stl_2 <- stl(s03_ts[,2], s.window = "periodic")
+#forecast of seasonaly adjusted data
+f1 <- fit_stl_1 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S03: Var05")
+#forecast of seasonaly adjusted data
+f2 <- fit_stl_2 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S03: Var07")
+#forecast from SLT + Random walk
+f3 <- fit_stl_1 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S03: Var05")
+#forecast from SLT + Random walk
+f4 <- fit_stl_2 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S03: Var07")
+#forecast from Holt-Winters
+hw1 <- HoltWinters(s03_ts[,1])
+#forecast from Holt-Winters
+hw2 <- HoltWinters(s03_ts[,2])
+f5 <- hw1 %>% forecast() %>%
+  autoplot() + ylab("S03: Var05")
+f6 <- hw2 %>% forecast() %>%
+  autoplot() + ylab("S03: Var07")
+(f1 + f2) / (f3 + f4) / (f5 + f6)
+```
+
+
+#### Forecasting S04: Var01 & Var02 with decomposition
+
+```{r fig.height=10, fig.width=15}
+#STL using default values
+fit_stl_1 <- stl(s04_ts[,1], s.window = "periodic")
+#STL using default values
+fit_stl_2 <- stl(s04_ts[,2], s.window = "periodic")
+#forecast of seasonaly adjusted data
+f1 <- fit_stl_1 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S04: Var01")
+#forecast of seasonaly adjusted data
+f2 <- fit_stl_2 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S04: Var02")
+#forecast from SLT + Random walk
+f3 <- fit_stl_1 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S04: Var01")
+#forecast from SLT + Random walk
+f4 <- fit_stl_2 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S04: Var02")
+#forecast from Holt-Winters
+hw1 <- HoltWinters(s04_ts[,1])
+#forecast from Holt-Winters
+hw2 <- HoltWinters(s04_ts[,2])
+f5 <- hw1 %>% forecast() %>%
+  autoplot() + ylab("S04: Var01")
+f6 <- hw2 %>% forecast() %>%
+  autoplot() + ylab("S04: Var02")
+(f1 + f2) / (f3 + f4) / (f5 + f6)
+```
+
+
+#### Forecasting S05: Var02 & Var03 with decomposition
+
+```{r fig.height=10, fig.width=15}
+#STL using default values
+fit_stl_1 <- stl(s05_ts[,1], s.window = "periodic")
+#STL using default values
+fit_stl_2 <- stl(s05_ts[,2], s.window = "periodic")
+#forecast of seasonaly adjusted data
+f1 <- fit_stl_1 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S05: Var02")
+#forecast of seasonaly adjusted data
+f2 <- fit_stl_2 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S05: Var03")
+#forecast from SLT + Random walk
+f3 <- fit_stl_1 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S05: Var02")
+#forecast from SLT + Random walk
+f4 <- fit_stl_2 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S05: Var03")
+#forecast from Holt-Winters
+hw1 <- HoltWinters(s05_ts[,1])
+#forecast from Holt-Winters
+hw2 <- HoltWinters(s05_ts[,2])
+f5 <- hw1 %>% forecast() %>%
+  autoplot() + ylab("S05: Var02")
+f6 <- hw2 %>% forecast() %>%
+  autoplot() + ylab("S05: Var03")
+(f1 + f2) / (f3 + f4) / (f5 + f6)
+```
+
+
+#### Forecasting S06: Var05 & Var07 with decomposition
+
+```{r fig.height=10, fig.width=15}
+#STL using default values
+fit_stl_1 <- stl(s06_ts[,1], s.window = "periodic")
+#STL using default values
+fit_stl_2 <- stl(s06_ts[,2], s.window = "periodic")
+#forecast of seasonaly adjusted data
+f1 <- fit_stl_1 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S06: Var05")
+#forecast of seasonaly adjusted data
+f2 <- fit_stl_2 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S06: Var07")
+#forecast from SLT + Random walk
+f3 <- fit_stl_1 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S06: Var05")
+#forecast from SLT + Random walk
+f4 <- fit_stl_2 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S06: Var07")
+#forecast from Holt-Winters
+hw1 <- HoltWinters(s06_ts[,1])
+#forecast from Holt-Winters
+hw2 <- HoltWinters(s06_ts[,2])
+f5 <- hw1 %>% forecast() %>%
+  autoplot() + ylab("S06: Var05")
+f6 <- hw2 %>% forecast() %>%
+  autoplot() + ylab("S06: Var07")
+(f1 + f2) / (f3 + f4) / (f5 + f6)
+```
+
+
+### Forecasting using Simple Exponential Smoothing (SES)
+
+### Forecasting S01: Var01 & Var02 with ses
+
+```{r ses_s01, fig.height=10, fig.width=15}
+# simple exponential smoothing since there is no clear trend or seasonal pattern
+# Fit ses models to Var01 & Var02
+fit_s01_ses_1 <- ses(s01_ts[,1])
+fit_s01_ses_2 <- ses(s01_ts[,2])
+
+# check residuals
+checkresiduals(fit_s01_ses_1)
+checkresiduals(fit_s01_ses_2)
+
+# forecast
+fc_s01_ses_1 <- forecast(fit_s01_ses_1)
+fc_s01_ses_2 <- forecast(fit_s01_ses_2)
+
+# plot forecasts
+fses_S01_1 <- autoplot(fc_s01_ses_1) + ylab("S01: Var01") +
+  autolayer(fitted(fc_s01_ses_1))
+fses_S01_2 <- autoplot(fc_s01_ses_2) + ylab("S01: Var02") +
+  autolayer(fitted(fc_s01_ses_2))
+
+(fses_S01_1 + fses_S01_2)
+
+```
+
+
+#### Forecasting S02: Var02 & Var03 with ses
+
+```{r ses_s02, fig.height=10, fig.width=15}
+# simple exponential smoothing since there is no clear trend or seasonal pattern
+# Fit ses models to Var02 & Var03
+fit_s02_ses_2 <- ses(s02_ts[,1])
+fit_s02_ses_3 <- ses(s02_ts[,2])
+
+# check residuals
+checkresiduals(fit_s02_ses_2)
+checkresiduals(fit_s02_ses_3)
+
+# forecast
+fc_s02_ses_2 <- forecast(fit_s02_ses_2)
+fc_s02_ses_3 <- forecast(fit_s02_ses_3)
+
+# plot forecasts
+fses_S02_2 <- autoplot(fc_s02_ses_2) + ylab("S02: Var02") +
+  autolayer(fitted(fc_s02_ses_2))
+fses_S02_3 <- autoplot(fc_s02_ses_3) + ylab("S02: Var03") +
+  autolayer(fitted(fc_s02_ses_3))
+
+(fses_S02_2 + fses_S02_3)
+
+```
+
+#### Forecasting S03: Var05 & Var07 with ses
+
+```{r ses_s03, fig.height=10, fig.width=15}
+# simple exponential smoothing since there is no clear trend or seasonal pattern
+# Fit ses models to Var05 & Var07
+fit_s03_ses_5 <- ses(s03_ts[,1])
+fit_s03_ses_7 <- ses(s03_ts[,2])
+
+# check residuals
+checkresiduals(fit_s03_ses_5)
+checkresiduals(fit_s03_ses_7)
+
+# forecast
+fc_s03_ses_5 <- forecast(fit_s03_ses_5)
+fc_s03_ses_7 <- forecast(fit_s03_ses_7)
+
+# plot forecasts
+fses_S03_5 <- autoplot(fc_s03_ses_5) + ylab("S03: Var05") +
+  autolayer(fitted(fc_s03_ses_5))
+fses_S03_7 <- autoplot(fc_s03_ses_7) + ylab("S03: Var07") +
+  autolayer(fitted(fc_s03_ses_7))
+
+(fses_S03_5 + fses_S03_7)
+
+```
+
+#### Forecasting S04: Var01 & Var02 with ses
+
+```{r ses_s04, fig.height=10, fig.width=15}
+# simple exponential smoothing since there is no clear trend or seasonal pattern
+# Fit ses models to Var01 & Var02
+fit_s04_ses_1 <- ses(s04_ts[,1])
+fit_s04_ses_2 <- ses(s04_ts[,2])
+
+# check residuals
+checkresiduals(fit_s04_ses_1)
+checkresiduals(fit_s04_ses_2)
+
+# forecast next 140 periods
+fc_s04_ses_1 <- forecast(fit_s04_ses_1)
+fc_s04_ses_2 <- forecast(fit_s04_ses_2)
+
+# plot forecasts
+fses_s04_1 <- autoplot(fc_s04_ses_1) + ylab("s04: Var01") +
+  autolayer(fitted(fc_s04_ses_1))
+fses_s04_2 <- autoplot(fc_s04_ses_2) + ylab("s04: Var02") +
+  autolayer(fitted(fc_s04_ses_2))
+
+(fses_s04_1 + fses_s04_2)
+
+```
+
+
+#### Forecasting S05: Var02 & Var03 with ses
+
+```{r ses_s05, fig.height=10, fig.width=15}
+# simple exponential smoothing since there is no clear trend or seasonal pattern
+# Fit ses models to Var02 & Var03
+fit_s05_ses_2 <- ses(s05_ts[,1])
+fit_s05_ses_3 <- ses(s05_ts[,2])
+
+# check residuals
+checkresiduals(fit_s05_ses_2)
+checkresiduals(fit_s05_ses_3)
+
+# forecast
+fc_s05_ses_2 <- forecast(fit_s05_ses_2)
+fc_s05_ses_3 <- forecast(fit_s05_ses_3)
+
+# plot forecasts
+fses_s05_2 <- autoplot(fc_s05_ses_2) + ylab("s05: Var02") +
+  autolayer(fitted(fc_s05_ses_2))
+fses_s05_3 <- autoplot(fc_s05_ses_3) + ylab("s05: Var03") +
+  autolayer(fitted(fc_s05_ses_3))
+
+(fses_s05_2 + fses_s05_3)
+
+```
+
+
+#### Forecasting S06: Var05 & Var07 with ses
+
+```{r ses_s06, fig.height=10, fig.width=15}
+# simple exponential smoothing since there is no clear trend or seasonal pattern
+# Fit ses models to Var05 & Var07
+fit_s06_ses_5 <- ses(s06_ts[,1])
+fit_s06_ses_7 <- ses(s06_ts[,2])
+
+# check residuals
+checkresiduals(fit_s06_ses_5)
+checkresiduals(fit_s06_ses_7)
+
+# forecast
+fc_s06_ses_5 <- forecast(fit_s06_ses_5)
+fc_s06_ses_7 <- forecast(fit_s06_ses_7)
+
+# plot forecasts
+fses_s06_5 <- autoplot(fc_s06_ses_5) + ylab("s06: Var05") +
+  autolayer(fitted(fc_s06_ses_5))
+fses_s06_7 <- autoplot(fc_s06_ses_7) + ylab("s06: Var07") +
+  autolayer(fitted(fc_s06_ses_7))
+
+(fses_s06_5 + fses_s06_7)
+
+```
+
+
+
+
+<br>
+<br>
+
+### Forecasting using ETS models
+
+#### Forecasting S01: Var01 & Var02 with ETS
+
+```{r ets_s01, fig.height=10, fig.width=15}
+
+# Fit ETS models to Var01 & Var02
+fit_s01_ETS_1 <- ets(s01_ts[,1])
+fit_s01_ETS_2 <- ets(s01_ts[,2])
+
+# check residuals
+checkresiduals(fit_s01_ETS_1)
+checkresiduals(fit_s01_ETS_2)
+
+# forecast
+fc_s01_ETS_1 <- forecast(fit_s01_ETS_1)
+fc_s01_ETS_2 <- forecast(fit_s01_ETS_2)
+
+# plot forecasts
+fets_S01_1 <- autoplot(fc_s01_ETS_1) + ylab("S01: Var01") +
+  autolayer(fitted(fc_s01_ETS_1))
+fets_S01_2 <- autoplot(fc_s01_ETS_2) + ylab("S01: Var02") +
+  autolayer(fitted(fc_s01_ETS_2))
+
+(fets_S01_1 + fets_S01_2)
+
+```
+
+#### Forecasting S02: Var02 & Var03 with ETS
+
+```{r ets_s02, fig.height=10, fig.width=15}
+
+# Fit ETS models to Var02 & Var03
+fit_s02_ETS_2 <- ets(s02_ts[,1])
+fit_s02_ETS_3 <- ets(s02_ts[,2])
+
+# check residuals
+checkresiduals(fit_s02_ETS_2)
+checkresiduals(fit_s02_ETS_3)
+
+# forecast
+fc_s02_ETS_2 <- forecast(fit_s02_ETS_2)
+fc_s02_ETS_3 <- forecast(fit_s02_ETS_3)
+
+# plot forecasts
+fets_S02_2 <- autoplot(fc_s02_ETS_2) + ylab("S02: Var02") +
+  autolayer(fitted(fc_s02_ETS_2))
+fets_S02_3 <- autoplot(fc_s02_ETS_3) + ylab("S02: Var03") +
+  autolayer(fitted(fc_s02_ETS_3))
+
+(fets_S02_2 + fets_S02_3)
+
+```
+
+
+#### Forecasting S03: Var05 & Var07 with ETS
+
+```{r ets_s03, fig.height=10, fig.width=15}
+
+# Fit ETS models to Var05 & Var07
+fit_s03_ETS_5 <- ets(s03_ts[,1])
+fit_s03_ETS_7 <- ets(s03_ts[,2])
+
+# check residuals
+checkresiduals(fit_s03_ETS_5)
+checkresiduals(fit_s03_ETS_7)
+
+# forecast
+fc_s03_ETS_5 <- forecast(fit_s03_ETS_5)
+fc_s03_ETS_7 <- forecast(fit_s03_ETS_7)
+
+# plot forecasts
+fets_S03_5 <- autoplot(fc_s03_ETS_5) + ylab("S03: Var05") +
+  autolayer(fitted(fc_s03_ETS_5))
+fets_S03_7 <- autoplot(fc_s03_ETS_7) + ylab("S03: Var07") +
+  autolayer(fitted(fc_s03_ETS_7))
+
+(fets_S03_5 + fets_S03_7)
+
+```
+
+
+#### Forecasting S04: Var01 & Var02 with ETS
+
+```{r ets_s04, fig.height=10, fig.width=15}
+
+# Fit ETS models to Var01 & Var02
+fit_s04_ETS_1 <- ets(s04_ts[,1])
+fit_s04_ETS_2 <- ets(s04_ts[,2])
+
+# check residuals
+checkresiduals(fit_s04_ETS_1)
+checkresiduals(fit_s04_ETS_2)
+
+# forecast next 140 periods
+fc_s04_ETS_1 <- forecast(fit_s04_ETS_1)
+fc_s04_ETS_2 <- forecast(fit_s04_ETS_2)
+
+# plot forecasts
+fets_s04_1 <- autoplot(fc_s04_ETS_1) + ylab("s04: Var01") +
+  autolayer(fitted(fc_s04_ETS_1))
+fets_s04_2 <- autoplot(fc_s04_ETS_2) + ylab("s04: Var02") +
+  autolayer(fitted(fc_s04_ETS_2))
+
+(fets_s04_1 + fets_s04_2)
+
+```
+
+
+#### Forecasting S05: Var02 & Var03 with ETS
+
+```{r ets_s05, fig.height=10, fig.width=15}
+
+# Fit ETS models to Var02 & Var03
+fit_s05_ETS_2 <- ets(s05_ts[,1])
+fit_s05_ETS_3 <- ets(s05_ts[,2])
+
+# check residuals
+checkresiduals(fit_s05_ETS_2)
+checkresiduals(fit_s05_ETS_3)
+
+# forecast
+fc_s05_ETS_2 <- forecast(fit_s05_ETS_2)
+fc_s05_ETS_3 <- forecast(fit_s05_ETS_3)
+
+# plot forecasts
+fets_s05_2 <- autoplot(fc_s05_ETS_2) + ylab("s05: Var02") +
+  autolayer(fitted(fc_s05_ETS_2))
+fets_s05_3 <- autoplot(fc_s05_ETS_3) + ylab("s05: Var03") +
+  autolayer(fitted(fc_s05_ETS_3))
+
+(fets_s05_2 + fets_s05_3)
+
+```
+
+
+#### Forecasting S06: Var05 & Var07 with ETS
+
+```{r ets_s06, fig.height=10, fig.width=15}
+
+# Fit ETS models to Var05 & Var07
+fit_s06_ETS_5 <- ets(s06_ts[,1])
+fit_s06_ETS_7 <- ets(s06_ts[,2])
+
+# check residuals
+checkresiduals(fit_s06_ETS_5)
+checkresiduals(fit_s06_ETS_7)
+
+# forecast
+fc_s06_ETS_5 <- forecast(fit_s06_ETS_5)
+fc_s06_ETS_7 <- forecast(fit_s06_ETS_7)
+
+# plot forecasts
+fets_s06_5 <- autoplot(fc_s06_ETS_5) + ylab("s06: Var05") +
+  autolayer(fitted(fc_s06_ETS_5))
+fets_s06_7 <- autoplot(fc_s06_ETS_7) + ylab("s06: Var07") +
+  autolayer(fitted(fc_s06_ETS_7))
+
+(fets_s06_5 + fets_s06_7)
+
+```
+
+
+<br>
+<br>
+
+### Forecasting using ARIMA models
+
+#### Forecasting S01: Var01 & Var02 with ARIMA
+
+```{r arima_s01, fig.height=10, fig.width=15}
+
+# Fit ARIMA models to Var01 & Var02
+fit_s01_ARIMA_1 <- auto.arima(s01_ts[,1], stepwise = TRUE)
+fit_s01_ARIMA_2 <- auto.arima(s01_ts[,2], stepwise = TRUE)
+
+# check residuals
+checkresiduals(fit_s01_ARIMA_1)
+checkresiduals(fit_s01_ARIMA_2)
+
+# forecast
+fc_s01_ARIMA_1 <- forecast(fit_s01_ARIMA_1)
+fc_s01_ARIMA_2 <- forecast(fit_s01_ARIMA_2)
+
+# plot forecasts
+fa_S01_1 <- autoplot(fc_s01_ARIMA_1) + ylab("S01: Var01") +
+  autolayer(fitted(fc_s01_ARIMA_1))
+fa_S01_2 <- autoplot(fc_s01_ARIMA_2) + ylab("S01: Var02") +
+  autolayer(fitted(fc_s01_ARIMA_2))
+
+(fa_S01_1 + fa_S01_2)
+
+```
+
+
+#### Forecasting S02: Var02 & Var03 with ARIMA
+
+```{r arima_s02, fig.height=10, fig.width=15}
+
+# Fit ARIMA models to Var02 & Var03
+fit_s02_ARIMA_2 <- auto.arima(s02_ts[,1], stepwise = TRUE)
+fit_s02_ARIMA_3 <- auto.arima(s02_ts[,2], stepwise = TRUE)
+
+# check residuals
+checkresiduals(fit_s02_ARIMA_2)
+checkresiduals(fit_s02_ARIMA_3)
+
+# forecast
+fc_s02_ARIMA_2 <- forecast(fit_s02_ARIMA_2)
+fc_s02_ARIMA_3 <- forecast(fit_s02_ARIMA_3)
+
+# plot forecasts
+fa_S02_2 <- autoplot(fc_s02_ARIMA_2) + ylab("S02: Var02") + ylab("S01: Var01") +
+  autolayer(fitted(fc_s02_ARIMA_2))
+fa_S02_3 <- autoplot(fc_s02_ARIMA_3) + ylab("S02: Var03") + ylab("S01: Var01") +
+  autolayer(fitted(fc_s02_ARIMA_3))
+
+(fa_S02_2 + fa_S02_3)
+
+```
+
+#### Forecasting S03: Var05 & Var07 with ARIMA
+
+```{r arima_s03, fig.height=10, fig.width=15}
+
+# Fit ARIMA models to Var05 & Var07
+fit_s03_ARIMA_5 <- auto.arima(s03_ts[,1], stepwise = TRUE)
+fit_s03_ARIMA_7 <- auto.arima(s03_ts[,2], stepwise = TRUE)
+
+# check residuals
+checkresiduals(fit_s03_ARIMA_5)
+checkresiduals(fit_s03_ARIMA_7)
+
+# forecast
+fc_s03_ARIMA_5 <- forecast(fit_s03_ARIMA_5)
+fc_s03_ARIMA_7 <- forecast(fit_s03_ARIMA_7)
+
+# plot forecasts
+fa_S03_5 <- autoplot(fc_s03_ARIMA_5) + ylab("S03: Var05") + ylab("S01: Var01") +
+  autolayer(fitted(fc_s03_ARIMA_5))
+fa_S03_7 <- autoplot(fc_s03_ARIMA_7) + ylab("S03: Var07") + ylab("S01: Var01") +
+  autolayer(fitted(fc_s03_ARIMA_7))
+
+(fa_S03_5 + fa_S03_7)
+
+```
+
+
+#### Forecasting S04: Var01 & Var02 with ARIMA
+
+```{r arima_s04, fig.height=10, fig.width=15}
+
+# Fit ARIMA models to Var01 & Var02
+fit_s04_ARIMA_1 <- auto.arima(s04_ts[,1], stepwise = TRUE)
+fit_s04_ARIMA_2 <- auto.arima(s04_ts[,2], stepwise = TRUE)
+
+# check residuals
+checkresiduals(fit_s04_ARIMA_1)
+checkresiduals(fit_s04_ARIMA_2)
+
+# forecast
+fc_s04_ARIMA_1 <- forecast(fit_s04_ARIMA_1)
+fc_s04_ARIMA_2 <- forecast(fit_s04_ARIMA_2)
+
+# plot forecasts
+fa_S04_1 <- autoplot(fc_s04_ARIMA_1) + ylab("S04: Var01") + ylab("S01: Var01") +
+  autolayer(fitted(fc_s04_ARIMA_1))
+fa_S04_2 <- autoplot(fc_s04_ARIMA_2) + ylab("S04: Var02") + ylab("S01: Var01") +
+  autolayer(fitted(fc_s04_ARIMA_2))
+
+(fa_S04_1 + fa_S04_2)
+
+```
+
+#### Forecasting S05: Var02 & Var03 with ARIMA
+
+```{r arima_s05, fig.height=10, fig.width=15}
+
+# Fit ARIMA models to Var02 & Var03
+fit_s05_ARIMA_2 <- auto.arima(s05_ts[,1], stepwise = TRUE)
+fit_s05_ARIMA_3 <- auto.arima(s05_ts[,2], stepwise = TRUE)
+
+# check residuals
+checkresiduals(fit_s05_ARIMA_2)
+checkresiduals(fit_s05_ARIMA_3)
+
+# forecast
+fc_s05_ARIMA_2 <- forecast(fit_s05_ARIMA_2)
+fc_s05_ARIMA_3 <- forecast(fit_s05_ARIMA_3)
+
+# plot forecasts
+fa_S05_2 <- autoplot(fc_s05_ARIMA_2) + ylab("S05: Var02") + ylab("S01: Var01") +
+  autolayer(fitted(fc_s05_ARIMA_2))
+fa_S05_3 <- autoplot(fc_s05_ARIMA_3) + ylab("S05: Var03") + ylab("S01: Var01") +
+  autolayer(fitted(fc_s05_ARIMA_3))
+
+(fa_S05_2 + fa_S05_3)
+
+```
+
+
+#### Forecasting S06: Var05 & Var07 with ARIMA
+
+```{r arima_s06, fig.height=10, fig.width=15}
+
+# Fit ARIMA models to Var05 & Var07
+fit_s06_ARIMA_5 <- auto.arima(s06_ts[,1], stepwise = TRUE)
+fit_s06_ARIMA_7 <- auto.arima(s06_ts[,2], stepwise = TRUE)
+
+# check residuals
+checkresiduals(fit_s06_ARIMA_5)
+checkresiduals(fit_s06_ARIMA_7)
+
+# forecast
+fc_s06_ARIMA_5 <- forecast(fit_s06_ARIMA_5)
+fc_s06_ARIMA_7 <- forecast(fit_s06_ARIMA_7)
+
+# plot forecasts
+fa_S06_5 <- autoplot(fc_s06_ARIMA_5) + ylab("S06: Var05") + ylab("S01: Var01") +
+  autolayer(fitted(fc_s06_ARIMA_5))
+fa_S06_7 <- autoplot(fc_s06_ARIMA_7) + ylab("S06: Var07") + ylab("S01: Var01") +
+  autolayer(fitted(fc_s06_ARIMA_7))
+
+(fa_S06_5 + fa_S06_7)
+
+```
+
+
+## Model Selection
+
+
+## Final Forecasting
+
+
+
