@@ -20,17 +20,16 @@ knitr::opts_chunk$set(echo=TRUE, warning=FALSE,
                       comment = "#>" )
 ```
 
-
-
-```{r echo=FALSE}
-# install from CRAN
-#install.packages("officedown")
-# or GitHub
-#remotes::install_github("davidgohel/officedown")
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
 ```
 
 Required Libraries
 ```{r warning=FALSE, message=FALSE}
+# install from CRAN
+#install.packages("officedown")
+# or GitHub
+#remotes::install_github("davidgohel/officedown")
 library(readxl)
 library(tidyverse)
 library(ggplot2)
@@ -80,13 +79,25 @@ str(df)
 dim(df)
 ```
 
+
 ##### Handling Missing Data
+
+```{r}
+summary(df)
+```
+
+- The provided data set contains 7 columns and 10,572 rows. The first column, "SeriesInd", is a datetime variable which can be converted to reflect a date. "category" is a classification of each row, of which there are 6 different ones, and the remaining 5 columns are variables to forecast and are the key ingredient for constructing timeseries.
+
+##### Missing Data: Impute or Delete?
 
 ```{r}
 paste0(sum(is.na(df))," values missing from original set")
 ```
 
-- The dilemma is to decide whether or not it is appropriate to perform an analysis via imputing missing values, or to simply delete them. According to the plot below, generated via "VIM::aggr()", 91.81% of the data is fulfilled. Var01, Var02, Var03, Var05, and Var07 are missing about 8% of data. At first impression, this seems like an insignificant amount of data that can be omitted from the set. Further investigation is needed to confirm this impression, and deletion will be deemed appropriate when the data is found to be missing completely at random (MCAR) 
+Looking at the summary generated above, columns 3-7 each have a range of 842-866 missing values. The dilemma is to decide whether or not it is appropriate to perform an analysis via imputing missing values, or to simply delete them. According to the plot below, generated via "VIM::aggr()", 91.81% of the data is fulfilled. Var01, Var02, Var03, Var05, and Var07 are missing about 8% of data. At first impression, this seems like an insignificant amount of data that can be omitted from the set. Further investigation is needed to confirm this impression, and deletion will be deemed appropriate if and only the data is found to be missing completely at random (MCAR).
+
+
+An excerpt from the following paper, $\underline{The\ prevention\ and\ handling\ of\ the\ missing\ data}$, by Hyun Kang, argues when deletion is appropriate or not from the following quote: *"...if the assumption of MCAR (missing completely at random) is satisfied, a listwise deletion is known to produce unbiased estimates and conservative results. When the data do not fulfill the assumption of MCAR, listwise deletion may cause bias in the estimates of the parameters. If there is a large enough sample, where power is not an issue, and the assumption of MCAR is satisfied, the listwise deletion may be a reasonable strategy. However, when there is not a large sample, or the assumption of MCAR is not satisfied, the listwise deletion is not the optimal strategy"* [$^1$](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3668100/)
 
 ```{r fig.width=10}
 # Plots of missing values
@@ -97,12 +108,8 @@ aggr_plot <- VIM::aggr(df, col = c("navyblue", "orange"),
                   ylab = c("Frequency of Missing Data", "Pattern"))
 ```
 
-##### Impute or Delete?
 
-- An excerpt from the following paper, $\underline{The\ prevention\ and\ handling\ of\ the\ missing\ data}$, by Hyun Kang, argues when deletion is appropriate or not from the following quote: *"...if the assumption of MCAR (missing completely at random) is satisfied, a listwise deletion is known to produce unbiased estimates and conservative results. When the data do not fulfill the assumption of MCAR, listwise deletion may cause bias in the estimates of the parameters. If there is a large enough sample, where power is not an issue, and the assumption of MCAR is satisfied, the listwise deletion may be a reasonable strategy. However, when there is not a large sample, or the assumption of MCAR is not satisfied, the listwise deletion is not the optimal strategy"* [$^1$](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3668100/)
-
-Creating a shadow matrix to see missing values will indicate whether or not the data is MCAR. 1 indicates all values are present, and anything else indicates the ratio/percentage of missing values correlated among each other [$^2$](https://stats.stackexchange.com/questions/172316/a-statistical-approach-to-determine-if-data-are-missing-at-random)
-
+By creating a shadow matrix to see a percentage (on a 0-1 scale) of missing values when all correlated among each other, this will help indicate whether or not the data is MCAR. [$^2$](https://stats.stackexchange.com/questions/172316/a-statistical-approach-to-determine-if-data-are-missing-at-random)
 
 ```{r}
 # Shadow Matrix: correlation of missing values from the dataset
@@ -119,11 +126,11 @@ Aside from considering values correlated with themselves, the following have no 
   
   - Var07 has no missing values when correlated with Var03 and Var05
   
-Taking these observations into consideration, it seems there appears to be bias in the data in the context of missing data. Therefore, it seems appropriate to impute the data for missing values since there is evidence they are not missing completely at random.
+Taking these observations into consideration, it seems there appears to be bias in the data in the context of missing data and therefore not missing completely at random. Instead of a listwise deletion, an imputation will be performed
 
 ##### Data Imputation
 
-- Imputation via "medianImpute" method within "preProcess()" function
+- Imputation via "medianImpute" method within "preProcess()" function via the caret package will be utilized. 
 
 ```{r}
 preProcess_NAdata_model <- preProcess(as.data.frame(df), method ="medianImpute")
@@ -141,7 +148,7 @@ summary(df)
 
 ##### Datetime conversion
 
-- It was found that column 1, "SeriesInd" is a datetime column. Datetime conversion is to be performed after imputation in order to ensure a successful imputation
+- Datetime conversion is to be performed after imputation in order to ensure a successful imputation
 
 ```{r}
 # Converting SeriesInd to Datetime
@@ -184,6 +191,7 @@ p5 <- ggplot(df, aes(category, Var07)) +
 ```
 
 
+
 ## Data Visualization - Predictors
 
 A time series that contain a list of numbers (the measurements), along with some information about what times those numbers were recorded (the index). 
@@ -205,6 +213,7 @@ p5 <- ggplot(df, aes(Var07, fill = category)) +
   geom_boxplot(outlier.color = "red", outlier.size = 3)
 p6 <- ggplot(df, aes(Datetime, fill = category)) + 
   geom_boxplot(outlier.color = "red", outlier.size = 10)
+
 (p1+p2)/(p3+p4)/(p5+p6)
 ```
 
@@ -221,6 +230,7 @@ p4 <- ggplot(df, aes(Var05, fill=category)) +
   geom_density(alpha = 0.5)
 p5 <- ggplot(df, aes(Var07, fill=category)) +
   geom_density(alpha = 0.5)
+
 p1+p2+p3+p4+p5+
   plot_layout(ncol = 2)
 ```
@@ -286,7 +296,8 @@ s05 <- df_transformed %>% dplyr::filter(category == "S05")
 s06 <- df_transformed %>% dplyr::filter(category == "S06")
 ```
 
-Testing conversion using as.Date so each row is a date with no time.
+
+Testing conversion using at.Date so each row is a date with no time.
 ```{r}
 df_test <- read_excel("data.xls")
 head(df_test)
@@ -300,6 +311,24 @@ summary(df_test)
 preProcess_NAdata_model <- preProcess(as.data.frame(df_test), method ="medianImpute")
 df_test <- predict(preProcess_NAdata_model, newdata = df_test)
 paste0(sum(is.na(df_test))," values missing after imputation")
+
+
+# Converting Var02 to Datetime
+df_test$SeriesInd <- as.Date(df_test$SeriesInd, origin = "1899-12-30")
+
+
+# Renaming SeriesInd to Date to clarify purpose
+df_test <- df_test %>% rename("Date" = SeriesInd)
+summary(df_test)
+
+#new imputation
+preProcess_NAdata_model <- preProcess(as.data.frame(df_test), method ="medianImpute")
+
+df_test <- predict(preProcess_NAdata_model, newdata = df_test)
+
+paste0(sum(is.na(df_test))," values missing after imputation")
+
+
 #new subsets with data conversion
 s01_2 <- df %>% filter(category == "S01")
 s02_2 <- df %>% filter(category == "S02")
@@ -377,10 +406,12 @@ p3 <- gglagplot(s03_ts[,1]) + theme(legend.position = "none") + gglagplot(s03_ts
 p4 <- gglagplot(s04_ts[,1]) + theme(legend.position = "none") + gglagplot(s04_ts[,2]) + theme(legend.position = "none")
 p5 <- gglagplot(s05_ts[,1]) + theme(legend.position = "none") + gglagplot(s05_ts[,2]) + theme(legend.position = "none")
 p6 <- gglagplot(s06_ts[,1]) + theme(legend.position = "none") + gglagplot(s06_ts[,2]) 
+
 ```
 ```{r fig.width=20}
 grid.arrange(p1, p2, p3, p4, p5, p6, nrow = 2)
 ```
+
 
 
 ## Data Modeling and Forecasting
@@ -1073,6 +1104,253 @@ fa_S06_7 <- autoplot(fc_s06_ARIMA_7) + ylab("S06: Var07") + ylab("S01: Var01") +
 
 
 ## Final Forecasting
+=======
+Forecasting S01: Var01 & Var02 with decomposition
+```{r fig.height=10, fig.width=15}
+#STL using default values
+fit_stl_1 <- stl(s01_ts[,1], s.window = "periodic")
+
+#STL using default values
+fit_stl_2 <- stl(s01_ts[,2], s.window = "periodic")
+
+#forecast of seasonaly adjusted data
+f1 <- fit_stl_1 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S01: Var01")
+
+#forecast of seasonaly adjusted data
+f2 <- fit_stl_2 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S01: Var02")
+
+#forecast from SLT + Random walk
+f3 <- fit_stl_1 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S01: Var01")
+
+#forecast from SLT + Random walk
+f4 <- fit_stl_2 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S01: Var02")
+
+#forecast from Holt-Winters
+hw1 <- HoltWinters(s01_ts[,1])
+
+#forecast from Holt-Winters
+hw2 <- HoltWinters(s01_ts[,2])
+
+f5 <- hw1 %>% forecast() %>%
+  autoplot() + ylab("S01: Var01")
+
+f6 <- hw2 %>% forecast() %>%
+  autoplot() + ylab("S01: Var02")
+
+(f1 + f2) / (f3 + f4) / (f5 + f6)
+```
+
+Forecasting S02: Var02 & Var03 with decomposition
+```{r fig.height=10, fig.width=15}
+#STL using default values
+fit_stl_1 <- stl(s02_ts[,1], s.window = "periodic")
+
+#STL using default values
+fit_stl_2 <- stl(s02_ts[,2], s.window = "periodic")
+
+#forecast of seasonaly adjusted data
+f1 <- fit_stl_1 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S02: Var02")
+
+#forecast of seasonaly adjusted data
+f2 <- fit_stl_2 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S02: Var03")
+
+#forecast from SLT + Random walk
+f3 <- fit_stl_1 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S02: Var02")
+
+#forecast from SLT + Random walk
+f4 <- fit_stl_2 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S02: Var03")
+
+#forecast from Holt-Winters
+hw1 <- HoltWinters(s02_ts[,1])
+
+#forecast from Holt-Winters
+hw2 <- HoltWinters(s02_ts[,2])
+
+f5 <- hw1 %>% forecast() %>%
+  autoplot() + ylab("S02: Var02")
+
+f6 <- hw2 %>% forecast() %>%
+  autoplot() + ylab("S02: Var03")
+
+(f1 + f2) / (f3 + f4) / (f5 + f6)
+```
+
+Forecasting S03: Var05 & Var07 with decomposition
+```{r fig.height=10, fig.width=15}
+#STL using default values
+fit_stl_1 <- stl(s03_ts[,1], s.window = "periodic")
+
+#STL using default values
+fit_stl_2 <- stl(s03_ts[,2], s.window = "periodic")
+
+#forecast of seasonaly adjusted data
+f1 <- fit_stl_1 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S03: Var05")
+
+#forecast of seasonaly adjusted data
+f2 <- fit_stl_2 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S03: Var07")
+
+#forecast from SLT + Random walk
+f3 <- fit_stl_1 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S03: Var05")
+
+#forecast from SLT + Random walk
+f4 <- fit_stl_2 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S03: Var07")
+
+#forecast from Holt-Winters
+hw1 <- HoltWinters(s03_ts[,1])
+
+#forecast from Holt-Winters
+hw2 <- HoltWinters(s03_ts[,2])
+
+f5 <- hw1 %>% forecast() %>%
+  autoplot() + ylab("S03: Var05")
+
+f6 <- hw2 %>% forecast() %>%
+  autoplot() + ylab("S03: Var07")
+
+(f1 + f2) / (f3 + f4) / (f5 + f6)
+```
+
+Forecasting S04: Var01 & Var02 with decomposition
+```{r fig.height=10, fig.width=15}
+#STL using default values
+fit_stl_1 <- stl(s04_ts[,1], s.window = "periodic")
+
+#STL using default values
+fit_stl_2 <- stl(s04_ts[,2], s.window = "periodic")
+
+#forecast of seasonaly adjusted data
+f1 <- fit_stl_1 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S04: Var01")
+
+#forecast of seasonaly adjusted data
+f2 <- fit_stl_2 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S04: Var02")
+
+#forecast from SLT + Random walk
+f3 <- fit_stl_1 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S04: Var01")
+
+#forecast from SLT + Random walk
+f4 <- fit_stl_2 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S04: Var02")
+
+#forecast from Holt-Winters
+hw1 <- HoltWinters(s04_ts[,1])
+
+#forecast from Holt-Winters
+hw2 <- HoltWinters(s04_ts[,2])
+
+f5 <- hw1 %>% forecast() %>%
+  autoplot() + ylab("S04: Var01")
+
+f6 <- hw2 %>% forecast() %>%
+  autoplot() + ylab("S04: Var02")
+
+(f1 + f2) / (f3 + f4) / (f5 + f6)
+```
+
+Forecasting S05: Var02 & Var03 with decomposition
+```{r fig.height=10, fig.width=15}
+#STL using default values
+fit_stl_1 <- stl(s05_ts[,1], s.window = "periodic")
+
+#STL using default values
+fit_stl_2 <- stl(s05_ts[,2], s.window = "periodic")
+
+#forecast of seasonaly adjusted data
+f1 <- fit_stl_1 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S05: Var02")
+
+#forecast of seasonaly adjusted data
+f2 <- fit_stl_2 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S05: Var03")
+
+#forecast from SLT + Random walk
+f3 <- fit_stl_1 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S05: Var02")
+
+#forecast from SLT + Random walk
+f4 <- fit_stl_2 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S05: Var03")
+
+#forecast from Holt-Winters
+hw1 <- HoltWinters(s05_ts[,1])
+
+#forecast from Holt-Winters
+hw2 <- HoltWinters(s05_ts[,2])
+
+f5 <- hw1 %>% forecast() %>%
+  autoplot() + ylab("S05: Var02")
+
+f6 <- hw2 %>% forecast() %>%
+  autoplot() + ylab("S05: Var03")
+
+(f1 + f2) / (f3 + f4) / (f5 + f6)
+```
+
+Forecasting S06: Var05 & Var07 with decomposition
+```{r fig.height=10, fig.width=15}
+#STL using default values
+fit_stl_1 <- stl(s06_ts[,1], s.window = "periodic")
+
+#STL using default values
+fit_stl_2 <- stl(s06_ts[,2], s.window = "periodic")
+
+#forecast of seasonaly adjusted data
+f1 <- fit_stl_1 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S06: Var05")
+
+#forecast of seasonaly adjusted data
+f2 <- fit_stl_2 %>% seasadj() %>% naive()%>%
+  autoplot() + ylab("S06: Var07")
+
+#forecast from SLT + Random walk
+f3 <- fit_stl_1 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S06: Var05")
+
+#forecast from SLT + Random walk
+f4 <- fit_stl_2 %>% forecast(method="naive") %>%
+  autoplot() + ylab("S06: Var07")
+
+#forecast from Holt-Winters
+hw1 <- HoltWinters(s06_ts[,1])
+
+#forecast from Holt-Winters
+hw2 <- HoltWinters(s06_ts[,2])
+
+f5 <- hw1 %>% forecast() %>%
+  autoplot() + ylab("S06: Var05")
+
+f6 <- hw2 %>% forecast() %>%
+  autoplot() + ylab("S06: Var07")
+
+(f1 + f2) / (f3 + f4) / (f5 + f6)
+```
+
+
+```{r}
+#simple exponential smoothing since there is no clear trend of seasonal pattern for S01
+fit_ets <- ets(s01_ts[,1])
+summary(fit_ets)
+autoplot(fit_ets)
+
+fit_ets %>% forecast(h=5) %>%
+  autoplot()
+```
+
+
 
 
 
