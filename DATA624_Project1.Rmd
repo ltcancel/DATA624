@@ -54,7 +54,7 @@ df <- read_excel("data.xls")
 head(df)
 ```
 
-
+The data set does not appear to have any distinguishing labels that would indicate anything about the source or purpose of the data set. Under normal circumstances, context about data and use case is important for forecasting. Context may help identify the kinds of methods and models that would be best suited to produce an accurate result - following the "no free lunch" principle. Therefore, this dataset is completely for practice and exercising forecasting.
 
 ## Data Cleaning & Imputation
 
@@ -70,6 +70,7 @@ summary(df)
 - Columns 5-7 (Var03, Var04, Var07) all have same amount of missing values. Very close quartile and min/max values, comparable to column 3 (Var01). Column 4 (Var02) has values that are significantly larger 
 
 #### Data Structure
+
 ```{r}
 str(df)
 ```
@@ -130,13 +131,15 @@ Aside from considering values correlated with themselves, the following have no 
   
   - Var07 has no missing values when correlated with Var03 and Var05
   
-Taking these observations into consideration, it seems there appears to be bias in the data in the context of missing data and therefore not missing completely at random. Instead of a listwise deletion, an imputation will be performed
+Taking these observations into consideration, it seems there appears to be bias in the data in the context of missing values and therefore not missing completely at random. Imputing the values is an appropriate step to take.
 
 ##### Data Imputation
 
-- Imputation via "medianImpute" method within "preProcess()" function via the caret package will be utilized. 
+As stated, since the missing values are not MCAR, imputation will be utilized to represent missing values in our data set. There are numerous methods to impute data, especially in R. Within the caret package, the "preProcess()" function enables imputation, and allows for users to select a method of imputation. The method "medianImpute" was chosen because of the ease and efficiency.
 
 ```{r}
+# Imputation via "medianImpute" method within "preProcess()" function via the caret package
+
 preProcess_NAdata_model <- preProcess(as.data.frame(df), method ="medianImpute")
 
 df <- predict(preProcess_NAdata_model, newdata = df)
@@ -144,7 +147,7 @@ df <- predict(preProcess_NAdata_model, newdata = df)
 paste0(sum(is.na(df))," values missing after imputation")
 ```
 
-- No data is missing after imputation
+- No data are missing after imputation
 - No discrepencies in the data after imputation.
 
 ```{r}
@@ -181,35 +184,38 @@ s05 <- df %>% filter(category == "S05")
 s06 <- df %>% filter(category == "S06")
 ```
 
-## Data Exploration
-
-The data set does not appear to have any distinguishing labels that would indicate anything about the source or purpose of the data set. Under normal circumstances, context about data and use case is important for forecasting. Context may help identify the kinds of methods and models that would be best suited to produce an accurate result - following the "no free lunch" principle. 
-
-Boxplots: Var02 has the most outliers but this is also the column with the largest range in values
-
-```{r warning=FALSE, fig.width=10, fig.height=8}
-p1 <- ggplot(df, aes(category, Var01)) +
-  geom_boxplot()
-p2 <- ggplot(df, aes(category, Var02)) +
-  geom_boxplot()
-p3 <- ggplot(df, aes(category, Var03)) +
-  geom_boxplot()
-p4 <- ggplot(df, aes(category, Var05)) +
-  geom_boxplot()
-p5 <- ggplot(df, aes(category, Var07)) +
-  geom_boxplot()
-```
-
-
-## Data Visualization - Predicators
+## Data Exploration & Visualizations
 
 A time series that contain a list of numbers (the measurements), along with some information about what times those numbers were recorded (the index). 
 
 
 *Box plots*
 
-- Var02 has the most outliers but this is also the column with the largest range in values
+Boxplots: 
+
+```{r warning=FALSE, fig.width=10, fig.height=4}
+# Boxplots of Predictors
+
+p1bp <- ggplot(df, aes(category, Var01)) +
+  geom_boxplot() + theme_classic()
+p2bp <- ggplot(df, aes(category, Var02)) +
+  geom_boxplot() + theme_classic()
+p3bp <- ggplot(df, aes(category, Var03)) +
+  geom_boxplot() + theme_classic()
+p4bp <- ggplot(df, aes(category, Var05)) +
+  geom_boxplot() + theme_classic()
+p5bp <- ggplot(df, aes(category, Var07)) +
+  geom_boxplot() + theme_classic()
+
+p1bp + p2bp + p3bp + p4bp + p5bp
+```
+
+- Var02 has the most outliers. It's also of a much larger a magnitude from the other predictors
+
+
 ```{r warning=FALSE, message=FALSE, fig.width=6, fig.height=8}
+# Other boxplot 
+
 p1 <- ggplot(df, aes(Var01, fill = category)) +
   geom_boxplot(outlier.color = "red", outlier.size = 3)
 p2 <- ggplot(df, aes(Var02, fill = category)) +
@@ -226,9 +232,9 @@ p6 <- ggplot(df, aes(Datetime, fill = category)) +
 (p1+p2)/(p3+p4)/(p5+p6)
 ```
 
-All predictors are left skewed so transformations are needed for each column
-
 ```{r warning=FALSE, fig.width=10, fig.height=7}
+# Density Plot
+
 p1 <- ggplot(df, aes(Var01, fill=category)) +
   geom_density(alpha = 0.5)
 p2 <- ggplot(df, aes(Var02, fill=category)) +
@@ -244,19 +250,24 @@ p1+p2+p3+p4+p5+
   plot_layout(ncol = 2)
 ```
 
+- According to the density plot above, all predictors are left skewed. Therefore transformations are needed for each column. By doing so, we can obtain a better forecast 
+
 ## Data transformations
 
-Var02 is the most skewed
+By using the skewness function within the moments package, we can see which predictor variable is skewed the most in quantifiable terms.
+
 ```{r}
 library(moments)
-skewness(df$Var01)
-skewness(df$Var02)
-skewness(df$Var03)
-skewness(df$Var05)
-skewness(df$Var07)
+paste0("Var01 skewness: ", skewness(df$Var01))
+paste0("Var02 skewness: ",skewness(df$Var02))
+paste0("Var03 skewness: ",skewness(df$Var03))
+paste0("Var05 skewness: ",skewness(df$Var05))
+paste0("Var07 skewness: ",skewness(df$Var07))
 ```
 
-Experimenting with 3 different transformations; log, square root, and cube root. The log transformation looks the most normalized
+- Var02 is the most skewed
+
+In order to improve the distribution for the predictors, we can investigate with applying 3 different transformations; log, square root, and cube root. Applying these transformations to one predictor will indicate which will provide the most normal distribution
 
 ```{r error=FALSE}
 log_var01 <- log10(df$Var01)
@@ -267,11 +278,9 @@ hist(df$Var01)
 hist(log_var01)
 hist(sqrt_var01)
 hist(cube_var01)
-
-
 ```
 
-Transform all predictors using log transformation
+It's revealed the log transformation appears to follow the most normal distribution. Therefore, the log transformation will be applied to all predictor variables.
 
 ```{r}
 df_transformed <- df
@@ -309,8 +318,15 @@ s05 <- df_transformed %>% dplyr::filter(category == "S05")
 s06 <- df_transformed %>% dplyr::filter(category == "S06")
 ```
 
+<<<<<<< Updated upstream
 Conversion using at.Date so each row is a date.
+=======
+Testing conversion using at.Date so each row is a date with no time.
+
+>>>>>>> Stashed changes
 ```{r}
+# New time conversion (experimental?)
+
 df_test <- read_excel("data.xls")
 head(df_test)
 tail(df_test)
@@ -341,6 +357,7 @@ s06_2 <- df %>% filter(category == "S06")
 
 
 create time series for each subset using the dataframe with dates
+
 ```{r}
 s01_ts <- ts(s01_2[,c("Var01","Var02")], frequency = 12, start = c(2011, 5), end = c(2018, 5))
 s02_ts <- ts(s02_2[,c("Var02","Var03")], frequency = 12, start = c(2011, 5), end = c(2018, 5))
@@ -350,16 +367,30 @@ s05_ts <- ts(s05_2[,c("Var02","Var03")], frequency = 12, start = c(2011, 5), end
 s06_ts <- ts(s06_2[,c("Var05","Var07")], frequency = 12, start = c(2011, 5), end = c(2018, 5))
 ```
 
+## Forecasting
 
-Autoplots and seasonal plots for S01
+Now that the data has been transformed, we can begin forecasting 
+
+##### Auto and Seasonal Plots for S01: Var01, 02
+
+For Var01, there are a few patterns to be pointed out. Annually, the value follows a slight valley pattern as it steadily decreases from the beginning to gradually rise towards the end. Monthly, there appears to be a pattern; toward the beginning of each month, the value decreases to a significant low only to lead up to a high-point approximately 2.5 points above the bottom, with a slight correction along the way. This timeseries is also the closest to a white noise series. 
+
+For Var02 as the years go on, the peaks get larger and more stark; particularly at 2015 and after 2017, and does not seem to follow a pattern as gradual as Var01. Monthly, there is no clear pattern in the value as it seems to invert shapes, with the exception of November. According to the lag plot, this timeseries distribution has a white noise series very similar to Var01.
+
 ```{r fig.width=15, fig.height=15}
 (autoplot(s01_ts, facets = 2)) / 
   (ggseasonplot(s01_ts[,1], main = "Var01") + ggseasonplot(s01_ts[,2], main = "Var02")) / 
   (ggsubseriesplot(s01_ts[,1]) + ggsubseriesplot(s01_ts[,2])) / 
-  (ggAcf(s01_ts[,2], main = "") + ggAcf(s01_ts[,2], main = ""))
+  (ggAcf(s01_ts[,2], main = "") + ggAcf(s01_ts[,2], main = "")) 
 ```
 
-Autoplots and seasonal plots for S02
+##### Auto and Seasonal Plots for S02: Var02, 03
+
+Var02: The plots generated for this variable indicate the value has a rather dramatic cycle. During the years it seems to have no real growth, as it peaks only to fall close to the lowest value. 2016 is quite the exceptional year for this, as it peaked much more than other years indicated. Monthly, this peaks mostly near the end of each month with a few exceptions to where the peak shifts toward the middle but still favors the end. However January, June, July, and October are all exceptions as their peaks are in the beginning of the month. There is no clear seasonality with these trends. This also does not appear to be a white noise series. 
+
+Var03: For Var03
+
+
 ```{r fig.width=15, fig.height=15}
 (autoplot(s02_ts, facets = 2)) / 
   (ggseasonplot(s02_ts[,1], main = "Var02") + ggseasonplot(s02_ts[,2], main = "Var03")) / 
