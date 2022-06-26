@@ -318,12 +318,12 @@ s05 <- df_transformed %>% dplyr::filter(category == "S05")
 s06 <- df_transformed %>% dplyr::filter(category == "S06")
 ```
 
-<<<<<<< Updated upstream
+Updated upstream
 Conversion using at.Date so each row is a date.
 =======
 Testing conversion using at.Date so each row is a date with no time.
 
->>>>>>> Stashed changes
+ Stashed changes
 ```{r}
 # New time conversion (experimental?)
 
