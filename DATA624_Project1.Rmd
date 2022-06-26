@@ -51,6 +51,8 @@ df <- read_excel("data.xls")
 head(df)
 ```
 
+
+
 ## Data Cleaning & Imputation
 
 ```{r}
@@ -69,20 +71,26 @@ summary(df)
 str(df)
 ```
 
-
-## Data Exploration
-
 ```{r}
 dim(df)
 ```
 
-##### Handling Missing Data
+```{r}
+summary(df)
+```
+
+- The provided data set contains 7 columns and 10,572 rows. The first column, "SeriesInd", is a datetime variable which can be converted to reflect a date. "category" is a classification of each row, of which there are 6 different ones, and the remaining 5 columns are variables to forecast and are the key ingredient for constructing timeseries.
+
+##### Missing Data: Impute or Delete?
 
 ```{r}
 paste0(sum(is.na(df))," values missing from original set")
 ```
 
-- The dilemma is to decide whether or not it is appropriate to perform an analysis via imputing missing values, or to simply delete them. According to the plot below, generated via "VIM::aggr()", 91.81% of the data is fulfilled. Var01, Var02, Var03, Var05, and Var07 are missing about 8% of data. At first impression, this seems like an insignificant amount of data that can be omitted from the set. Further investigation is needed to confirm this impression, and deletion will be deemed appropriate when the data is found to be missing completely at random (MCAR) 
+Looking at the summary generated above, columns 3-7 each have a range of 842-866 missing values. The dilemma is to decide whether or not it is appropriate to perform an analysis via imputing missing values, or to simply delete them. According to the plot below, generated via "VIM::aggr()", 91.81% of the data is fulfilled. Var01, Var02, Var03, Var05, and Var07 are missing about 8% of data. At first impression, this seems like an insignificant amount of data that can be omitted from the set. Further investigation is needed to confirm this impression, and deletion will be deemed appropriate if and only the data is found to be missing completely at random (MCAR).
+
+
+An excerpt from the following paper, $\underline{The\ prevention\ and\ handling\ of\ the\ missing\ data}$, by Hyun Kang, argues when deletion is appropriate or not from the following quote: *"...if the assumption of MCAR (missing completely at random) is satisfied, a listwise deletion is known to produce unbiased estimates and conservative results. When the data do not fulfill the assumption of MCAR, listwise deletion may cause bias in the estimates of the parameters. If there is a large enough sample, where power is not an issue, and the assumption of MCAR is satisfied, the listwise deletion may be a reasonable strategy. However, when there is not a large sample, or the assumption of MCAR is not satisfied, the listwise deletion is not the optimal strategy"* [$^1$](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3668100/)
 
 ```{r fig.width=10}
 # Plots of missing values
@@ -94,12 +102,8 @@ aggr_plot <- VIM::aggr(df, col = c("navyblue", "orange"),
                   ylab = c("Frequency of Missing Data", "Pattern"))
 ```
 
-##### Impute or Delete?
 
-- An excerpt from the following paper, $\underline{The\ prevention\ and\ handling\ of\ the\ missing\ data}$, by Hyun Kang, argues when deletion is appropriate or not from the following quote: *"...if the assumption of MCAR (missing completely at random) is satisfied, a listwise deletion is known to produce unbiased estimates and conservative results. When the data do not fulfill the assumption of MCAR, listwise deletion may cause bias in the estimates of the parameters. If there is a large enough sample, where power is not an issue, and the assumption of MCAR is satisfied, the listwise deletion may be a reasonable strategy. However, when there is not a large sample, or the assumption of MCAR is not satisfied, the listwise deletion is not the optimal strategy"* [$^1$](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3668100/)
-
-Creating a shadow matrix to see missing values will indicate whether or not the data is MCAR. 1 indicates all values are present, and anything else indicates the ratio/percentage of missing values correlated among each other [$^2$](https://stats.stackexchange.com/questions/172316/a-statistical-approach-to-determine-if-data-are-missing-at-random)
-
+By creating a shadow matrix to see a percentage (on a 0-1 scale) of missing values when all correlated among each other, this will help indicate whether or not the data is MCAR. [$^2$](https://stats.stackexchange.com/questions/172316/a-statistical-approach-to-determine-if-data-are-missing-at-random)
 
 ```{r}
 # Shadow Matrix: correlation of missing values from the dataset
@@ -119,11 +123,11 @@ Aside from considering values correlated with themselves, the following have no 
   
   - Var07 has no missing values when correlated with Var03 and Var05
   
-Taking these observations into consideration, it seems there appears to be bias in the data in the context of missing data. Therefore, it seems appropriate to impute the data for missing values since there is evidence they are not missing completely at random.
+Taking these observations into consideration, it seems there appears to be bias in the data in the context of missing data and therefore not missing completely at random. Instead of a listwise deletion, an imputation will be performed
 
 ##### Data Imputation
 
-- Imputation via "medianImpute" method within "preProcess()" function
+- Imputation via "medianImpute" method within "preProcess()" function via the caret package will be utilized. 
 
 ```{r}
 preProcess_NAdata_model <- preProcess(as.data.frame(df), method ="medianImpute")
@@ -143,7 +147,7 @@ summary(df)
 
 ##### Datetime conversion
 
-- It was found that column 1, "SeriesInd" is a datetime column. Datetime conversion is to be performed after imputation in order to ensure a successful imputation
+- Datetime conversion is to be performed after imputation in order to ensure a successful imputation
 
 ```{r}
 # Converting Var02 to Datetime
