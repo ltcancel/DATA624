@@ -1,7 +1,7 @@
 ---
 title: "DATA624 Homework 1 - Week 4"
 author: "Esteban Aramayo, Coffy Andrews-Guo, LeTicia Cancel, Joseph Connolly, Ian Costello"
-date: "6/26/2022"
+date: "`r Sys.Date()`"
 output:
   word_document:
     toc: yes
@@ -138,3 +138,215 @@ plot()
 ### f. 
 
 *Explore the relationships between each of the top predictors and the response. How could this information be helpful in improving yield in the future runs of the manufacturing process?*
+
+
+\newpage
+
+
+## KJ 7.2 (Nonlinear Regression Models)
+**Friedman (1991) introduced several benchmark data sets create by simulation. One of these simulations used the following nonlinear equation to create data:**
+$$
+y = 10\sin(\pi x_1x_2) + 20(x_3 - 0.5)^2 + 10x_4 + 5x_5 + N(0, \sigma)
+$$
+
+**where the** $x$ **values are random variables uniformly distributed between [0,1] (there are also 5 other non-informative variables also created in the simulation). The package** $mlbench$ **contains a function called** $mlbench.friedman1$ ** that simulates these data:**
+
+```{ results='hide'}
+> library(mlbench)
+> set.seed(200)
+> trainingData <- mlbench.friedman1(200, sd = 1)
+> ## We convert the 'x' data from a matrix to a data frame
+> ## One reason is that this will give the columns names.
+> trainingData$x <- data.frame(trainingData$x)
+> ## Look at the data using
+> featurePlot(trainingData$x, trainingData$y)
+> ## or other methods.
+
+> ## This creates a list with a vector 'y' and a matrix
+> ## of predictors 'x'. Also simulate a large test set to
+> ## estimate the true error rate with good precision:
+> testData <- mlbench.friedman1(5000, sd = 1)
+> testData$x <- data.frame(testData$x)
+```
+
+Tune several models on these data. For example:
+
+```{ results='hide'}
+library(caret)
+> knnModel <- train(x = trainingData$x,
++                   y = trainingData$y,
++                   method = "knn",
++                   preProc = c("center", "scale"),
++                   tuneLength = 10)
+> knnModel
+200 samples
+10 predictors
+
+Pre-processing: centered, scaled
+Resampling: Bootstrap (25 reps)
+
+Summary of sample sizes: 200, 200, 200, 200, 200, 200, ...
+
+Resampling results across tuning parameters:
+
+  k  RMSE  Rsquared  RMSE SD Rsquared SD
+  5  3.51  0.496     0.238   0.0641
+  7  3.36  0.536     0.24    0.0617
+  9  3.3   0.559     0.251   0.0546
+  11 3.24  0.586     0.252   0.0501
+  13 3.2   0.61      0.234   0.0465
+  15 3.19  0.623     0.264   0.0496
+  17 3.19  0.63      0.286   0.0528
+  19 3.18  0.643     0.274   0.048
+  21 3.2   0.646     0.269   0.0464
+  23 3.2   0.652     0.267   0.0465
+
+RMSE was used to select the optimal model using the smallest value.
+The final value used for the model was k = 19.
+
+> knnPred <- predict(knnModel, newdata = testData$x)
+> ## The function 'postResample' can be used to get the test set
+> ## perforamnce values
+> postResample(pred = knnPred, obs = testData$y)
+
+  RMSE       Rsquared
+  3.2286834  0.6871735
+```
+
+**Which models appear to give the best performance? Does MARS select the informative predictors (those named** $X1-X5$**)?**
+
+
+\newpage
+
+
+## KJ 7.5 (Nonlinear Regression Models)
+
+**Exercise 6.3 describes data for a chemical manufacturing process. Use the same data imputation, data splitting, and pre-processing steps as before and train several nonlinear regression models.**
+
+### a. Which nonlinear regression model gives the optimal resampling and test set performance?
+
+
+### b. Which predictors are most important in the optimal nonlinear regression model? Do either the biological or process variables dominate the list? How do the top ten important predictors compare to the top ten predictors from the optimal linear model?
+
+
+
+### c. Explore the relationships between the top predictors and the response for the predictors that are unique to the optimal nonlinear regression model. Do these plots reveal intuition about the biological or process predictors and their relationship with yield?
+
+
+
+\newpage
+
+## KJ 8.1 (Regression Trees and Rule-Based Models)
+
+**Recreate the simulated data from Exercise 7.2:**
+
+```{}
+> library(mlbench)
+> set.seed(200)
+> simulated <- mlbench.friedman1(200, sd = 1)
+> simulated <- cbind(simulated$x, simulated$y)
+> simulated <- as.data.frame(simulated)
+> colnames(simulated)[ncol(simulated)] <- "y"
+```
+
+### a. Fit a random forest model to all of the predictors, then estimate the variable importance scores:
+
+```{}
+> library(randomForest)
+> library(caret)
+> model1 <- randomForest(y ~ ., data = simulated,
++ importance = TRUE,
++ ntree = 1000)
+> rfImp1 <- varImp(model1, scale = FALSE)
+```
+
+Did the random forest model significantly use the uninformative predictors (V6-V10)?
+
+
+
+### b. Now add an additional predictor that is highly correlated with one of the informative predictors. For example:
+
+```{}
+> simulated$duplicate1 <- simulated$V1 + rnorm(200) * .1
+> cor(simulated$duplicate1, simulated$V1)
+```
+
+Fit another random forest model to these data. Did the importance score for $V1$ change?
+
+What happens when you add another predictor that is also highly correlated with $V1$?
+
+
+
+
+### c. Use the `cforest` function in the `party` package to fit a random forest model using conditional inference trees. The `party` package function `varimp` can calculate predictor importance. The `conditional` argument of that function toggles between the traditional importance measure and the modified version described in `Strobl et al. (2007)`. Do these importances show the same pattern as the traditional random forest model?
+
+
+
+### d. Repeat this process with different tree models, such as boosted trees and Cubist. Does the same pattern occur?
+
+
+
+\newpage
+
+## KJ 8.2 (Regression Trees and Rule-Based Models)
+ 
+**Use a simulation to show tree bias with different granularities.**
+
+![](Fig8.25.PNG)
+
+
+
+
+\newpage
+
+## KJ 8.3 (Regression Trees and Rule-Based Models)
+
+
+
+
+
+
+
+
+
+
+
+\newpage
+
+## KJ 8.7 (Regression Trees and Rule-Based Models)
+
+**In stochastic gradient boosting the bagging fraction and learning rate will govern the construction of the trees as they are guided by the gradient. Althouth the optimal values of these paramaters should be obtained through the tuning process, it is helpful to understand how the magnitudes of these parameters affect magnitudes of variable importance. Figure 8.24 provides the variable importance plots for boosting using two extreme values for the bagging fraction (0.1 and 0.9) and the learning rate (0.1 and 0.9) for the solubility data. The left-hand plot has both parameters set to 0.1, and the right-hand plot has both set to 0.9:**
+
+### a. Why does the model on the right focus its importance on just the first few of predictors, whereas the model on the left spreads importance across more predictors?
+
+
+### b. Which model do you think would be more predictive of other samples?
+
+
+### c. How would increasing interaction depth affect the slope of predictor importance for either model in Fig. 8.24?
+
+
+
+
+
+\newpage
+
+## HW BATCH #2 - Market Basket Analysis / Recommender Systems (a simple problem)
+
+**I am assigning one simple problem on market basket analysis / recommender systems.**
+
+**Imagine 10000 receipts sitting on your table. Each receipt represents a transcation with items that were purchased. The receipt is a representation of stuff that went into a customer's basket - and therefore 'Market Basket Analysis'.**
+
+**That is exactly what the Groceries Data Set contains: a collection of receipts with each line representing 1 receipt and the items purchased. Each line is called a** $$transaction$$ **and each column in a row represents an** $item.$
+
+**Here is the dataset =**[GroceryDataSet.csv](https://bbhosted.cuny.edu/bbcswebdav/pid-8461316-dt-announcement-rid-389564218_1/xid-389564218_1)**(comma separated file)**
+
+**You assignment is to use R to mine the data for association rules. You should report support confidence and lift and your top 10 rules by lift. Turn in as you would the other problems from HA and KJ. You should packaged this with your HW#2 set.**
+
+**NOTE: Bonus - Use a Python Library in addition to R and get a Bonus.**
+
+
+
+\newpage
+
+## References
