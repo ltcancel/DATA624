@@ -1,0 +1,140 @@
+---
+title: "DATA624 Homework 1 - Week 4"
+author: "Esteban Aramayo, Coffy Andrews-Guo, LeTicia Cancel, Joseph Connolly, Ian Costello"
+date: "6/26/2022"
+output:
+  word_document:
+    toc: yes
+    toc_depth: '2'
+  html_document:
+    toc: yes
+    toc_float: yes
+    toc_depth: 2
+---
+
+```{r global-options, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE,
+                      message=FALSE,
+                      collapse = FALSE,
+                      comment = "#>" )
+```
+
+# Libraries
+
+Loading in the libraries referenced in Sect. 6.5.
+
+```{r}
+library(elasticnet)
+library(caret)
+library(MASS)
+library(lars)
+library(stats)
+library(pls)
+library(tidyverse)
+library(dplyr)
+library(RANN)
+library(GGally)
+library(naniar)
+```
+
+
+# Week 4 
+
+## KJ 6.3
+
+*A chemical manufacturing process for a pharmaceutical product was discussed in Sec. 1.4. In this problem, the objective is to understand the relationship between biological measurements of the raw materials (predictors), measurements of the manufacturing process (predictors), and the response of product yield. Biological predictors cannot be changed but can be used to assess the quality of the raw material before processing. On the other hand, manufacturing process predictors can be changed in the manufacturing process. Improving product yield by 1% will boost revenue by approximately one hundred thousand dollars per batch ($100,000/batch):*
+
+### (a) 
+
+*Start R and use these commands to load the data:*
+
+*The matrix `processPredictors` contains the 57 predictors (12 describing the input of biological material and 45 describing the process predictors) for the 176 manufacturing runs. `yield` contains the percent yield for each run.*
+
+```{r}
+library(AppliedPredictiveModeling)
+data(ChemicalManufacturingProcess)
+df_raw <- ChemicalManufacturingProcess
+```
+
+### b. 
+
+*A small percentage of cells in the predictor set contain missing values. Use the imputation function to fill in these missing values (e.g., see Sec. 3.8).*
+
+```{r}
+summary(df_raw)
+```
+
+```{r}
+gg_miss_var(df_raw)
+```
+
+```{r}
+preProcess_NAdata_model <- preProcess(df_raw, method ="medianImpute")
+df <- predict(preProcess_NAdata_model, newdata = df_raw)
+```
+
+```{r}
+paste0(sum(is.na(df))," values missing after imputation")
+```
+
+### c.
+
+*Split the data into a training and test set, pre-process the data, and tune a model of your choice from this chapter. What is the optimal value of the performance metric?*  
+
+**Code References: https://topepo.github.io/caret/pre-processing.html#the-preprocess-function** 
+
+#### Splitting data in to training and test set
+
+```{r}
+# Create the training and test datasets
+set.seed(100)
+
+# Step 1: Get row numbers for the training data
+trainRowNumbers <- createDataPartition(df$Yield, p=0.8, list=FALSE)
+
+# Step 2: Create the training  dataset
+trainData <- df[trainRowNumbers,]
+
+# Step 3: Create the test dataset
+testData <- df[-trainRowNumbers,]
+```
+
+#### Data preprocess
+
+```{r}
+preProcValues <- preProcess(trainData, method = c("center", "scale"))
+
+trainTransformed <- predict(preProcValues, trainData)
+testTransformed <- predict(preProcValues, testData)
+
+xTrain <- trainTransformed %>%
+  select(-Yield)
+yTrain <- trainTransformed %>%
+  select(Yield)
+```
+
+#### Tune model
+
+```{r}
+lm_model <- train(xTrain, yTrain$Yield, method="lm", trControl=trainControl(method="repeatedcv",repeats=5) )
+lm_model
+```
+
+```{r}
+summary(lm_model)
+plot()
+```
+
+### d. 
+
+**Resampling examples from Sect. 4.9 of the text.**
+
+*Predict the response for the test set. What is the value of the performance metric and how does this compare with the resampled performance metric of the training set?*
+
+### e.
+
+*Which predictors are the most important in the model you have trained? Do either the biological or process predictors dominate the list?*
+
+### f. 
+
+*Explore the relationships between each of the top predictors and the response. How could this information be helpful in improving yield in the future runs of the manufacturing process?*
