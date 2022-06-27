@@ -1,7 +1,7 @@
 ---
 title: "Data624 - Project 1"
 author: "Esteban Aramayo, Coffy Andrews-Guo, LeTicia Cancel, Joseph Connolly, Ian Costello"
-date: '2022-06-21'
+date: '6/26/2022'
 output: 
   word_document:
     toc: yes
@@ -108,20 +108,7 @@ p1bp + p2bp + p3bp + p4bp + p5bp
 
 - Var02 has the most outliers. It's also of a much larger a magnitude from the other predictors
 
-##### Datetime conversion
 
-- Datetime conversion is to be performed after imputation in order to ensure a successful imputation
-
-```{r}
-# Converting Var02 to Datetime
-df$SeriesInd <- as.integer(df$SeriesInd)
-df$SeriesInd <- as.POSIXct(df$SeriesInd, origin = "1970-01-01")
-
-
-# Renaming SeriesInd to Date to clarify purpose
-
-df <- df %>% rename("Datetime" = SeriesInd)
-```
 
 **Figure 3 Outliers**
 
@@ -144,7 +131,22 @@ p6 <- ggplot(df, aes(Datetime, fill = category)) +
 
 # Data Preparation
 
-##### Handling Missing Data
+## Datetime conversion
+
+- Datetime conversion is to be performed after imputation in order to ensure a successful imputation
+
+```{r}
+# Converting Var02 to Datetime
+df$SeriesInd <- as.integer(df$SeriesInd)
+df$SeriesInd <- as.POSIXct(df$SeriesInd, origin = "1970-01-01")
+
+
+# Renaming SeriesInd to Date to clarify purpose
+
+df <- df %>% rename("Datetime" = SeriesInd)
+```
+
+## Handling Missing Data
 
 ```{r}
 paste0(sum(is.na(df))," values missing from original set")
@@ -152,7 +154,7 @@ paste0(sum(is.na(df))," values missing from original set")
 
 Looking at the summary generated above, columns 3-7 each have a range of 842-866 missing values. The dilemma is to decide whether or not it is appropriate to perform an analysis via imputing missing values, or to simply delete them. According to the plot below, generated via "VIM::aggr()", 91.81% of the data is fulfilled. Var01, Var02, Var03, Var05, and Var07 are missing about 8% of data. At first impression, this seems like an insignificant amount of data that can be omitted from the set. Further investigation is needed to confirm this impression, and deletion will be deemed appropriate if and only the data is found to be missing completely at random (MCAR).
 
-##### Impute or Delete?
+## Impute or Delete
 
 An excerpt from the following paper, $\underline{The\ prevention\ and\ handling\ of\ the\ missing\ data}$, by Hyun Kang, argues when deletion is appropriate or not from the following quote: *"...if the assumption of MCAR (missing completely at random) is satisfied, a listwise deletion is known to produce unbiased estimates and conservative results. When the data do not fulfill the assumption of MCAR, listwise deletion may cause bias in the estimates of the parameters. If there is a large enough sample, where power is not an issue, and the assumption of MCAR is satisfied, the listwise deletion may be a reasonable strategy. However, when there is not a large sample, or the assumption of MCAR is not satisfied, the listwise deletion is not the optimal strategy"* [$^1$](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3668100/)
 
@@ -165,7 +167,6 @@ aggr_plot <- VIM::aggr(df, col = c("navyblue", "orange"),
                   cex.axis = 0.7, gap = 3,
                   ylab = c("Frequency of Missing Data", "Pattern"))
 ```
-
 
 By creating a shadow matrix to see a percentage (on a 0-1 scale) of missing values when all correlated among each other, this will help indicate whether or not the data is MCAR. [$^2$](https://stats.stackexchange.com/questions/172316/a-statistical-approach-to-determine-if-data-are-missing-at-random)
 
@@ -189,7 +190,7 @@ Aside from considering values correlated with themselves, the following have no 
   
 Taking these observations into consideration, it seems there appears to be bias in the data in the context of missing values and therefore not missing completely at random. Imputing the values is an appropriate step to take.
 
-##### Data Imputation
+## Data Imputation
 
 As stated, since the missing values are not MCAR, imputation will be utilized to represent missing values in our data set. There are numerous methods to impute data, especially in R. Within the caret package, the "preProcess()" function enables imputation, and allows for users to select a method of imputation. The method "medianImpute" was chosen because of the ease and efficiency.
 
@@ -217,7 +218,7 @@ s05 <- df %>% filter(category == "S05")
 s06 <- df %>% filter(category == "S06")
 ```
 
-## Data transformations
+## Data Transformations
 
 By using the skewness function within the moments package, we can see which predictor variable is skewed the most in quantifiable terms.
 
@@ -321,11 +322,11 @@ s05_ts <- ts(s05_2[,c("Var02","Var03")], frequency = 12, start = c(2011, 5), end
 s06_ts <- ts(s06_2[,c("Var05","Var07")], frequency = 12, start = c(2011, 5), end = c(2018, 5))
 ```
 
-# Forecasting
+# Forecasting and Model Selection
 
 Now that the data has been transformed, we can begin forecasting 
 
-##### Auto and Seasonal Plots for S01: Var01, 02
+## Auto and Seasonal Plots Analysis
 
 For Var01, there are a few patterns to be pointed out. Annually, the value follows a slight valley pattern as it steadily decreases from the beginning to gradually rise towards the end. Monthly, there appears to be a pattern; toward the beginning of each month, the value decreases to a significant low only to lead up to a high-point approximately 2.5 points above the bottom, with a slight correction along the way. This timeseries is also the closest to a white noise series. 
 
@@ -387,7 +388,7 @@ f6 <- hw2 %>% forecast() %>%
 (f1 + f2) / (f3 + f4) / (f5 + f6)
 ```
 
-## Other Forecast Models
+### Other Forecast Models
 
 - SES is... 7.1 for broad defintion
 - Point forecast is straightline
@@ -411,10 +412,4 @@ s05          |Var03      | ARIMA(0,1,2)
 s06          |Var05      | ARIMA(0,1,1)
 s06          |Var07      | ARIMA(0,1,1)
 
-
-
-
-
-
-
-
+# Conclusions and Recommendation

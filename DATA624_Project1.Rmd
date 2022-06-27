@@ -1099,7 +1099,7 @@ f_hw1_s01_1 <- forecast(hw1_s01_1, h= 140)
 #forecast from Holt-Winters
 hw2_s01_2 <- HoltWinters(s01_ts[,2])
 f_hw2_s01_2 <- forecast(hw2_s01_2, h= 140)
-
+and Fin
  #forecast from Holt-Winters
 hw1_s02_1 <- HoltWinters(s02_ts[,1])
 f_hw1_s02_1 <- forecast(hw1_s02_1, h= 140)
