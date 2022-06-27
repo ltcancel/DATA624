@@ -40,6 +40,7 @@ library(VIM)
 library(ggpubr)
 library(gridExtra)
 library(forecast)
+library(writexl)
 ```
 
 # Project Summary
@@ -318,12 +319,20 @@ s05 <- df_transformed %>% dplyr::filter(category == "S05")
 s06 <- df_transformed %>% dplyr::filter(category == "S06")
 ```
 
+<<<<<<< Updated upstream
 Updated upstream
-Conversion using at.Date so each row is a date.
 =======
+
+>>>>>>> Stashed changes
+Conversion using at.Date so each row is a date.
+
 Testing conversion using at.Date so each row is a date with no time.
 
+<<<<<<< Updated upstream
  Stashed changes
+=======
+
+>>>>>>> Stashed changes
 ```{r}
 # New time conversion (experimental?)
 
@@ -440,6 +449,7 @@ p5 <- gglagplot(s05_ts[,1]) + theme(legend.position = "none") + gglagplot(s05_ts
 p6 <- gglagplot(s06_ts[,1]) + theme(legend.position = "none") + gglagplot(s06_ts[,2]) 
 
 ```
+
 ```{r fig.width=20}
 grid.arrange(p1, p2, p3, p4, p5, p6, nrow = 2)
 ```
@@ -949,9 +959,6 @@ fets_s06_7 <- autoplot(fc_s06_ETS_7) + ylab("s06: Var07") +
 ```
 
 
-<br>
-<br>
-
 ### Forecasting using ARIMA models
 
 #### Forecasting S01: Var01 & Var02 with ARIMA
@@ -1083,5 +1090,71 @@ fa_S06_7 <- autoplot(fc_s06_ARIMA_7) + ylab("S06: Var07") + ylab("S01: Var01") +
 
 ## Final Forecasting
 
+#### Forecast using HoltWinters
+```{r}
+#forecast from Holt-Winters
+hw1_s01_1 <- HoltWinters(s01_ts[,1])
+f_hw1_s01_1 <- forecast(hw1_s01_1, h= 140)
 
+#forecast from Holt-Winters
+hw2_s01_2 <- HoltWinters(s01_ts[,2])
+f_hw2_s01_2 <- forecast(hw2_s01_2, h= 140)
+
+ #forecast from Holt-Winters
+hw1_s02_1 <- HoltWinters(s02_ts[,1])
+f_hw1_s02_1 <- forecast(hw1_s02_1, h= 140)
+
+#forecast from Holt-Winters
+hw2_s02_2 <- HoltWinters(s02_ts[,2])
+f_hw2_s02_2 <- forecast(hw2_s02_2, h= 140)
+
+#forecast from Holt-Winters
+hw1_s03_1 <- HoltWinters(s03_ts[,1])
+f_hw1_s03_1 <- forecast(hw1_s03_1, h= 140)
+
+#forecast from Holt-Winters
+hw2_s03_2 <- HoltWinters(s03_ts[,2])
+f_hw2_s03_2 <- forecast(hw2_s03_2, h= 140)
+
+#forecast from Holt-Winters
+hw1_s04_1 <- HoltWinters(s04_ts[,1])
+f_hw1_s04_1 <- forecast(hw1_s04_1, h= 140)
+
+#forecast from Holt-Winters
+hw2_s04_2 <- HoltWinters(s04_ts[,2])
+f_hw2_s04_2 <- forecast(hw2_s04_2, h= 140)
+
+#forecast from Holt-Winters
+hw1_s05_1 <- HoltWinters(s05_ts[,1])
+f_hw1_s05_1 <- forecast(hw1_s05_1, h= 140)
+
+#forecast from Holt-Winters
+hw2_s05_2 <- HoltWinters(s05_ts[,2])
+f_hw2_s05_2 <- forecast(hw2_s05_2, h= 140)
+
+#forecast from Holt-Winters
+hw1_s06_1 <- HoltWinters(s06_ts[,1])
+f_hw1_s06_1 <- forecast(hw1_s06_1, h= 140)
+
+#forecast from Holt-Winters
+hw2_s06_2 <- HoltWinters(s06_ts[,2])
+f_hw2_s06_2 <- forecast(hw2_s06_2, h= 140)
+```
+
+
+```{r}
+# export all predictions to excel
+write_xlsx(as.data.frame(f_hw1_s01_1), "Project1\\s01_1.xlsx")
+write_xlsx(as.data.frame(f_hw2_s01_2), "Project1\\s01_2.xlsx")
+write_xlsx(as.data.frame(f_hw1_s02_1), "Project1\\s02_1.xlsx")
+write_xlsx(as.data.frame(f_hw2_s02_2), "Project1\\s02_2.xlsx")
+write_xlsx(as.data.frame(f_hw1_s03_1), "Project1\\s03_1.xlsx")
+write_xlsx(as.data.frame(f_hw2_s03_2), "Project1\\s03_2.xlsx")
+write_xlsx(as.data.frame(f_hw1_s04_1), "Project1\\s04_1.xlsx")
+write_xlsx(as.data.frame(f_hw2_s04_2), "Project1\\s04_2.xlsx")
+write_xlsx(as.data.frame(f_hw1_s05_1), "Project1\\s05_1.xlsx")
+write_xlsx(as.data.frame(f_hw2_s05_2), "Project1\\s05_2.xlsx")
+write_xlsx(as.data.frame(f_hw1_s06_1), "Project1\\s06_1.xlsx")
+write_xlsx(as.data.frame(f_hw2_s06_2), "Project1\\s06_2.xlsx")
+```
 
