@@ -62,9 +62,10 @@ df_raw <- ChemicalManufacturingProcess
 
 ```{r}
 summary(df_raw)
+paste0("Missing Values: ",sum(is.na(ChemicalManufacturingProcess)))
 ```
 
-```{r}
+```{r fig.height=10}
 gg_miss_var(df_raw)
 ```
 
@@ -107,22 +108,24 @@ preProcValues <- preProcess(trainData, method = c("center", "scale"))
 trainTransformed <- predict(preProcValues, trainData)
 testTransformed <- predict(preProcValues, testData)
 
-xTrain <- trainTransformed %>%
-  select(-Yield)
-yTrain <- trainTransformed %>%
-  select(Yield)
+trainTransformed
+
+xTrain <- trainTransformed %>% dplyr::select(-Yield)
+
+yTrain <- trainTransformed %>% dplyr::select(Yield)
 ```
 
 #### Tune model
 
-```{r}
+```{r warning=FALSE}
 lm_model <- train(xTrain, yTrain$Yield, method="lm", trControl=trainControl(method="repeatedcv",repeats=5) )
 lm_model
 ```
 
 ```{r}
 summary(lm_model)
-plot()
+
+plot(lm_model$finalModel)
 ```
 
 ### d. 
@@ -151,66 +154,41 @@ $$
 
 **where the** $x$ **values are random variables uniformly distributed between [0,1] (there are also 5 other non-informative variables also created in the simulation). The package** $mlbench$ **contains a function called** $mlbench.friedman1$ ** that simulates these data:**
 
-```{ results='hide'}
-> library(mlbench)
-> set.seed(200)
-> trainingData <- mlbench.friedman1(200, sd = 1)
-> ## We convert the 'x' data from a matrix to a data frame
-> ## One reason is that this will give the columns names.
-> trainingData$x <- data.frame(trainingData$x)
-> ## Look at the data using
-> featurePlot(trainingData$x, trainingData$y)
-> ## or other methods.
+```{r results='hide', fig.width=12}
+library(mlbench)
+set.seed(200)
+trainingData <- mlbench.friedman1(200, sd = 1)
+## We convert the 'x' data from a matrix to a data frame
+## One reason is that this will give the columns names.
+trainingData$x <- data.frame(trainingData$x)
+## Look at the data using
+featurePlot(trainingData$x, trainingData$y)
+## or other methods.
 
-> ## This creates a list with a vector 'y' and a matrix
-> ## of predictors 'x'. Also simulate a large test set to
-> ## estimate the true error rate with good precision:
-> testData <- mlbench.friedman1(5000, sd = 1)
-> testData$x <- data.frame(testData$x)
+## This creates a list with a vector 'y' and a matrix
+## of predictors 'x'. Also simulate a large test set to
+## estimate the true error rate with good precision:
+testData <- mlbench.friedman1(5000, sd = 1)
+testData$x <- data.frame(testData$x)
 ```
 
 Tune several models on these data. For example:
 
-```{ results='hide'}
+```{r results='hide'}
 library(caret)
-> knnModel <- train(x = trainingData$x,
-+                   y = trainingData$y,
-+                   method = "knn",
-+                   preProc = c("center", "scale"),
-+                   tuneLength = 10)
-> knnModel
-200 samples
-10 predictors
+knnModel <- train(x = trainingData$x,
+                   y = trainingData$y,
+                   method = "knn",
+                   preProc = c("center", "scale"),
+                   tuneLength = 10)
+knnModel
+```
 
-Pre-processing: centered, scaled
-Resampling: Bootstrap (25 reps)
-
-Summary of sample sizes: 200, 200, 200, 200, 200, 200, ...
-
-Resampling results across tuning parameters:
-
-  k  RMSE  Rsquared  RMSE SD Rsquared SD
-  5  3.51  0.496     0.238   0.0641
-  7  3.36  0.536     0.24    0.0617
-  9  3.3   0.559     0.251   0.0546
-  11 3.24  0.586     0.252   0.0501
-  13 3.2   0.61      0.234   0.0465
-  15 3.19  0.623     0.264   0.0496
-  17 3.19  0.63      0.286   0.0528
-  19 3.18  0.643     0.274   0.048
-  21 3.2   0.646     0.269   0.0464
-  23 3.2   0.652     0.267   0.0465
-
-RMSE was used to select the optimal model using the smallest value.
-The final value used for the model was k = 19.
-
-> knnPred <- predict(knnModel, newdata = testData$x)
-> ## The function 'postResample' can be used to get the test set
-> ## perforamnce values
-> postResample(pred = knnPred, obs = testData$y)
-
-  RMSE       Rsquared
-  3.2286834  0.6871735
+```{r}
+knnPred <- predict(knnModel, newdata = testData$x)
+## The function 'postResample' can be used to get the test set
+## perforamnce values
+postResample(pred = knnPred, obs = testData$y)
 ```
 
 **Which models appear to give the best performance? Does MARS select the informative predictors (those named** $X1-X5$**)?**
