@@ -145,6 +145,7 @@ plot(lm_model$finalModel)
 
 \newpage
 
+# Week 5
 
 ## KJ 7.2 (Nonlinear Regression Models)
 **Friedman (1991) introduced several benchmark data sets create by simulation. One of these simulations used the following nonlinear equation to create data:**
@@ -308,6 +309,8 @@ What happens when you add another predictor that is also highly correlated with 
 
 
 \newpage
+
+# Week 6
 
 ## HW BATCH #2 - Market Basket Analysis / Recommender Systems (a simple problem)
 
