@@ -219,24 +219,35 @@ postResample(pred = knnPred, obs = testData$y)
 
 **Recreate the simulated data from Exercise 7.2:**
 
-```{}
-> library(mlbench)
-> set.seed(200)
-> simulated <- mlbench.friedman1(200, sd = 1)
-> simulated <- cbind(simulated$x, simulated$y)
-> simulated <- as.data.frame(simulated)
-> colnames(simulated)[ncol(simulated)] <- "y"
+```{r}
+library(mlbench)
+set.seed(200)
+simulated <- mlbench.friedman1(200, sd = 1)
+simulated <- cbind(simulated$x, simulated$y)
+simulated <- as.data.frame(simulated)
+colnames(simulated)[ncol(simulated)] <- "y"
+head(simulated)
 ```
 
 ### a. Fit a random forest model to all of the predictors, then estimate the variable importance scores:
 
-```{}
-> library(randomForest)
-> library(caret)
-> model1 <- randomForest(y ~ ., data = simulated,
-+ importance = TRUE,
-+ ntree = 1000)
-> rfImp1 <- varImp(model1, scale = FALSE)
+```{r}
+#library(randomForest)
+#library(caret)
+library(tibble)
+model1 <- randomForest(y ~., data = simulated, importance = TRUE, ntree = 1000)
+rfImp1 <- varImp(model1, scale = FALSE)
+
+rfImp1 <- tibble::rownames_to_column(rfImp1, "Predictors")
+
+rfImp1 %>%
+  mutate(name = fct_reorder(Predictors, Overall)) %>%
+  ggplot(aes(x = name, y = Overall)) +
+    geom_segment(aes(x=Predictors, xend=Predictors, y=min(Overall), yend= Overall), color = "grey") +
+    geom_point(color = "orange", size = 4) +
+    xlab("Predictor") +
+    theme_light() +
+    coord_flip()
 ```
 
 Did the random forest model significantly use the uninformative predictors (V6-V10)?
