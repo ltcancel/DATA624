@@ -1,0 +1,1023 @@
+---
+title: "DATA624 Homework 1 - Week 4"
+author: "Esteban Aramayo, Coffy Andrews-Guo, LeTicia Cancel, Joseph Connolly, Ian Costello"
+date: "`r Sys.Date()`"
+output:
+  word_document:
+    toc: yes
+    toc_depth: '2'
+  html_document:
+    toc: yes
+    toc_float: yes
+    toc_depth: 2
+---
+
+```{r global-options, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE,
+                      message=FALSE,
+                      collapse = FALSE,
+                      comment = "#>" )
+```
+
+# Libraries
+
+Loading in the libraries referenced in Sect. 6.5.
+
+```{r}
+library(elasticnet)
+library(caret)
+library(MASS)
+library(lars)
+library(stats)
+library(pls)
+library(tidyverse)
+library(dplyr)
+library(RANN)
+library(GGally)
+library(naniar)
+```
+
+
+# Week 4 
+
+## KJ 6.3
+
+*A chemical manufacturing process for a pharmaceutical product was discussed in Sec. 1.4. In this problem, the objective is to understand the relationship between biological measurements of the raw materials (predictors), measurements of the manufacturing process (predictors), and the response of product yield. Biological predictors cannot be changed but can be used to assess the quality of the raw material before processing. On the other hand, manufacturing process predictors can be changed in the manufacturing process. Improving product yield by 1% will boost revenue by approximately one hundred thousand dollars per batch ($100,000/batch):*
+
+### (a) 
+
+*Start R and use these commands to load the data:*
+
+*The matrix `processPredictors` contains the 57 predictors (12 describing the input of biological material and 45 describing the process predictors) for the 176 manufacturing runs. `yield` contains the percent yield for each run.*
+
+```{r}
+library(AppliedPredictiveModeling)
+data(ChemicalManufacturingProcess)
+df_raw <- ChemicalManufacturingProcess
+```
+
+### b. 
+
+*A small percentage of cells in the predictor set contain missing values. Use the imputation function to fill in these missing values (e.g., see Sec. 3.8).*
+
+```{r}
+summary(df_raw)
+paste0("Missing Values: ",sum(is.na(ChemicalManufacturingProcess)))
+```
+
+```{r fig.height=10}
+gg_miss_var(df_raw)
+```
+
+```{r}
+preProcess_NAdata_model <- preProcess(df_raw, method ="medianImpute")
+df <- predict(preProcess_NAdata_model, newdata = df_raw)
+```
+
+```{r}
+paste0(sum(is.na(df))," values missing after imputation")
+```
+
+### c.
+
+*Split the data into a training and test set, pre-process the data, and tune a model of your choice from this chapter. What is the optimal value of the performance metric?*  
+
+**Code References: https://topepo.github.io/caret/pre-processing.html#the-preprocess-function** 
+
+#### Splitting data in to training and test set
+
+```{r}
+# Create the training and test datasets
+set.seed(100)
+
+# Step 1: Get row numbers for the training data
+trainRowNumbers <- createDataPartition(df$Yield, p=0.8, list=FALSE)
+
+# Step 2: Create the training  dataset
+trainData <- df[trainRowNumbers,]
+
+# Step 3: Create the test dataset
+testData <- df[-trainRowNumbers,]
+```
+
+#### Data preprocess
+
+```{r}
+preProcValues <- preProcess(trainData, method = c("center", "scale"))
+
+trainTransformed <- predict(preProcValues, trainData)
+testTransformed <- predict(preProcValues, testData)
+
+trainTransformed
+
+xTrain <- trainTransformed %>% dplyr::select(-Yield)
+
+yTrain <- trainTransformed %>% dplyr::select(Yield)
+
+xTest  <- testTransformed  %>% dplyr::select(-Yield)
+
+yTest  <- testTransformed %>% dplyr::select(Yield)
+
+```
+
+#### Tune model
+
+```{r warning=FALSE}
+lm_model <- train(xTrain, yTrain$Yield, method="lm", trControl=trainControl(method="repeatedcv",repeats=5) )
+lm_model
+```
+
+```{r}
+summary(lm_model)
+
+plot(lm_model$finalModel)
+```
+
+### d. 
+
+**Resampling examples from Sect. 4.9 of the text.**
+
+*Predict the response for the test set. What is the value of the performance metric and how does this compare with the resampled performance metric of the training set?*
+
+
+Predict using the test data set and get the model's performance values
+
+```{r}
+finalLMPred <- predict(lm_model$finalModel, newdata = xTest)
+## The function 'postResample' can be used to get the test set
+## performance values
+postResample(pred = finalLMPred, obs = yTest$Yield)
+```
+
+As it can be seen in the table below, the resampled performance metrix of the test set is much better than that of the training data set. The RMSE for the test set is smaller than that of the training one.
+
+
+Model                   |      RMSE  |  Rsquared |       MAE
+------------------------|------------|-----------|----------
+Linear Model (Training) |  1.7617940 | 0.4240885 | 0.9535992 
+Linear Model (Test)     |  1.2731407 | 0.1443080 | 0.7636275
+
+
+
+
+### e.
+
+*Which predictors are the most important in the model you have trained? Do either the biological or process predictors dominate the list?*
+
+Below is a list of the top 10 most important predictors for the Linear Regression model.
+
+```{r}
+plot(caret::varImp(lm_model), top = 10)
+
+caret::varImp(lm_model, scale = FALSE)
+```
+
+
+### f.  
+
+*Explore the relationships between each of the top predictors and the response. How could this information be helpful in improving yield in the future runs of the manufacturing process?*
+
+
+```{r}
+library(gridExtra)
+
+top10lmPred <- trainTransformed %>%
+   select(Yield, 
+          ManufacturingProcess32,
+          ManufacturingProcess33,
+          ManufacturingProcess28,
+          ManufacturingProcess37,
+          ManufacturingProcess13,
+          ManufacturingProcess07,
+          BiologicalMaterial05,
+          ManufacturingProcess04,
+          ManufacturingProcess16,
+          BiologicalMaterial11)
+
+plt01 <- top10lmPred %>%
+  ggplot(aes(x = ManufacturingProcess32, y = Yield)) +
+  geom_point() + geom_smooth(method = "lm") + theme_bw()
+
+plt02 <- top10lmPred %>%
+  ggplot(aes(x = ManufacturingProcess33, y = Yield)) +
+  geom_point()+ geom_smooth(method = "lm") + theme_bw()
+
+plt03 <- top10lmPred %>%
+  ggplot(aes(x = ManufacturingProcess28, y = Yield)) +
+  geom_point() + geom_smooth(method = "lm") + theme_bw()
+
+plt04 <- top10lmPred %>%
+  ggplot(aes(x =  ManufacturingProcess37, y = Yield)) +
+  geom_point() + geom_smooth(method = "lm") + theme_bw()
+
+plt05 <- top10lmPred %>%
+  ggplot(aes(x = ManufacturingProcess13, y = Yield)) +
+  geom_point() + geom_smooth(method = "lm") + theme_bw()
+
+plt06 <- top10lmPred %>%
+  ggplot(aes(x = ManufacturingProcess07, y = Yield)) +
+  geom_point() + geom_smooth(method = "lm") + theme_bw()
+
+plt07 <- top10lmPred %>%
+  ggplot(aes(x = BiologicalMaterial05, y = Yield)) +
+  geom_point() + geom_smooth(method = "lm") + theme_bw()
+
+plt08 <- top10lmPred %>%
+  ggplot(aes(x = ManufacturingProcess04, y = Yield)) +
+  geom_point() + geom_smooth(method = "lm") + theme_bw()
+
+plt09 <- top10lmPred %>%
+  ggplot(aes(x = ManufacturingProcess16, y = Yield)) +
+  geom_point() + geom_smooth(method = "lm") + theme_bw()
+
+plt10 <- top10lmPred %>%
+  ggplot(aes(x = BiologicalMaterial11, y = Yield)) +
+  geom_point() + geom_smooth(method = "lm") + theme_bw()
+
+# Biological Predictors
+grid.arrange(plt07, plt10, nrow = 1, top = "BIOLOGICAL PREDICTORS")
+
+# Process Predictors
+grid.arrange(plt01, plt02, plt03, plt04, plt05, plt06, plt08, plt09,
+             nrow = 3, top = "PROCESS PREDICTORS")
+
+```
+
+<br>
+<br>
+
+We use scatter plots between the top 10 predictors of the model and the response variable.
+
+The conclusion is:
+
+* The 2 biological predictors `BiologicalMaterial05` and `BiologicalMaterial11` appear to have a low positive correlation to the response.
+
+* The top 2 predictors appears to be `ManufacturingProcess32` and `ManufacturingProcess33`. Which, appear to have a positive correlation with the response.
+
+* The predictors `ManufacturingProcess04` and `ManufacturingProcess13` seem to have a negative correlation with the response.
+
+* The predictor `ManufacturingProcess37` seems to have a low negative correlation with the response.
+
+* The remaining predictors `ManufacturingProcess07`, `ManufacturingProcess16` and `ManufacturingProcess28` seem to have no correlation to the response.
+
+
+
+\newpage
+
+
+
+# Week 5
+
+
+## KJ 7.2
+
+`Friedman (1991)` introduced several benchmark data sets create by simulation. 
+
+One of these simulations used the following nonlinear equation to create data:
+
+$y = 10 sin(\pi x_1 x_) + 20(x_3 − 0.5)^2 + 10x_4 + 5x_5 + N(0, \sigma^2)$
+
+where the x values are random variables uniformly distributed between [0, 1] (there are also 5 other non-informative variables also created in the simulation).
+
+The package `mlbench` contains a function called `mlbench.friedman1` that simulates these data:
+
+```{r}
+library(caret)
+library(mlbench)
+
+set.seed(200)
+trainingData <- mlbench.friedman1(200, sd = 1)
+## We convert the 'x' data from a matrix to a data frame
+## One reason is that this will give the columns names.
+trainingData$x <- data.frame(trainingData$x)
+## Look at the data using
+caret::featurePlot(trainingData$x, trainingData$y)
+## or other methods.
+
+## This creates a list with a vector 'y' and a matrix
+## of predictors 'x'. Also simulate a large test set to
+## estimate the true error rate with good precision:
+testData <- mlbench.friedman1(5000, sd = 1)
+testData$x <- data.frame(testData$x)
+
+
+```
+  
+Tune several models on these data. For example:
+
+```{r}
+
+library(caret)
+knnModel <- train(x = trainingData$x,
+                  y = trainingData$y,
+                  method = "knn",
+                  preProc = c("center", "scale"),
+                  tuneLength = 10)
+
+knnModel
+
+```
+
+
+```{r}
+knnPred <- predict(knnModel, newdata = testData$x)
+## The function 'postResample' can be used to get the test set
+## perforamnce values
+postResample(pred = knnPred, obs = testData$y)
+```
+
+**Which models appear to give the best performance? Does MARS select the informative predictors (those named X1–X5)?**
+
+<br>
+
+#### Using a Neural Network model
+
+First, we remove predictors to ensure that the maximum absolute pairwise correlation between the predictors is less than 0.75.
+
+```{r}
+
+tooHigh <- findCorrelation(cor(trainingData$x), cutoff = .75)
+
+tooHigh
+
+```
+Since the correlation vector is empty, there are no predictors to remove. We can now fit a neural network model using the existing training set.
+
+```{r}
+
+# Resource: Chapter 7.5 of textbook "Applied Predictive Modeling" by KJ
+
+## Create a specific candidate set of models to evaluate:
+nnetGrid <- expand.grid(.decay = c(0, 0.01, .1),
+                        .size = c(1:10),
+                        .bag = FALSE)
+
+# We can use caret to perform a grid search using 10-fold cross-validation.
+# The train function generates a resampling estimate of performance. Because
+# the training set size is not small, 10-fold cross-validation should produce
+# reasonable estimates of model performance. The function trainControl specifies
+# the type of resampling:
+ctrl <- trainControl(method = "cv", number = 10)
+
+nnetTune <- train(trainingData$x, trainingData$y,
+                  method = "avNNet",
+                  tuneGrid = nnetGrid,
+                  trControl = ctrl,
+                  ## Automatically standardize data prior to modeling
+                  ## and prediction
+                  preProc = c("center", "scale"),
+                  linout = TRUE,
+                  trace = FALSE,
+                  MaxNWts = 10 * (ncol(trainingData$x) + 1) + 10 + 1,
+                  maxit = 500)
+
+nnetTune
+```
+
+Predict using the test data set and get the model's performance values
+
+```{r}
+nnetPred <- predict(nnetTune, newdata = testData$x)
+## The function 'postResample' can be used to get the test set
+## performance values
+postResample(pred = nnetPred, obs = testData$y)
+```
+
+<br>
+
+#### Using a Multivariate Adaptive Regression Splines (MARS) model
+
+```{r}
+
+# Resource: Chapter 7.5 of textbook "Applied Predictive Modeling" by KJ
+# Resource: http://uc-r.github.io/mars
+
+library(earth)
+library(dplyr)
+
+## Create a specific candidate set of models to evaluate:
+marsGrid <- expand.grid(degree = 1:3,
+                        nprune = seq(2, 100, length.out = 10) %>% floor()
+  )
+
+# We can use caret to perform a grid search using 10-fold cross-validation.
+# The train function generates a resampling estimate of performance. Because
+# the training set size is not small, 10-fold cross-validation should produce
+# reasonable estimates of model performance. The function trainControl specifies
+# the type of resampling:
+ctrl <- trainControl(method = "cv", number = 10)
+
+
+# cross validated model
+tuned_mars <- train(
+  x = trainingData$x,
+  y = trainingData$y,
+  method = "earth",
+  metric = "RMSE",
+  trControl = ctrl,
+  tuneGrid = marsGrid
+)
+
+tuned_mars
+
+```
+
+Plot the MARS model results
+
+```{r}
+ggplot(tuned_mars)
+```
+
+Show the best tuned MARS model
+
+```{r}
+# best chosen MARS model
+tuned_mars$bestTune
+```
+
+Predict using the test data set and get the model's performance values
+
+```{r}
+marsPred <- predict(tuned_mars, newdata = testData$x)
+## The function 'postResample' can be used to get the test set
+## performance values
+postResample(pred = marsPred, obs = testData$y)
+```
+
+<br>
+
+#### Using a Support Vector Machines (SVM) model
+
+```{r}
+
+# Resource: Chapter 7.5 of textbook "Applied Predictive Modeling" by KJ
+
+library(kernlab)
+
+
+# We can use caret to perform a grid search using 10-fold cross-validation.
+# The train function generates a resampling estimate of performance. Because
+# the training set size is not small, 10-fold cross-validation should produce
+# reasonable estimates of model performance. The function trainControl specifies
+# the type of resampling:
+ctrl <- trainControl(method = "cv", number = 10)
+
+
+svmRTuned <- train(trainingData$x, trainingData$y,
+                   method = "svmRadial",
+                   preProc = c("center", "scale"),
+                   tuneLength = 14,
+                   trControl = ctrl)
+
+svmRTuned
+
+```
+
+
+Predict using the test data set and get the model's performance values
+
+```{r}
+svmPred <- predict(svmRTuned, newdata = testData$x)
+## The function 'postResample' can be used to get the test set
+## performance values
+postResample(pred = svmPred, obs = testData$y)
+```
+
+
+
+**Which models appear to give the best performance? Does MARS select the informative predictors (those named X1–X5)?**
+
+Comparing all used models we can see that the **MARS** model yields the best performance in terms of the lowest **RMSE = 1.2803060**.
+
+
+Model                   |      RMSE  |  Rsquared |       MAE
+------------------------|------------|-----------|----------
+KNN                     |  3.2040595 | 0.6819919 | 2.5683461 
+Neural Network (avNNet) |  2.1930855 | 0.8113903 | 1.6402075
+MARS                    |  **1.2803060** | 0.9335241 | 1.0168673
+SVM                     |  2.0793977 | 0.8249453 | 1.5796370 
+
+
+\newpage
+
+
+## KJ 7.5 (Nonlinear Regression Models)
+
+**Exercise 6.3 describes data for a chemical manufacturing process. Use the same data imputation, data splitting, and pre-processing steps as before and train several nonlinear regression models.**
+
+
+Load libraries used for Exercise 6.3
+
+```{r}
+library(RANN)
+library(dplyr)
+library(naniar)
+library(caret)
+```
+
+#### Load the data
+
+```{r}
+library(AppliedPredictiveModeling)
+data(ChemicalManufacturingProcess)
+df_raw <- ChemicalManufacturingProcess
+```
+
+#### Perform imputation of missing values
+
+```{r}
+# check variables for missing values
+# gg_miss_var(df_raw)
+```
+
+```{r}
+preProcess_impute <- preProcess(df_raw, method ="knnImpute")
+df <- predict(preProcess_impute, newdata = df_raw)
+```
+
+```{r}
+# check variables for missing values
+# gg_miss_var(df)
+```
+
+#### Remove near zero variance predictors
+
+Predictors that have one unique value (i.e. are zero variance predictors) or predictors that are have both of the following characteristics: they have very few unique values relative to the number of samples and the ratio of the frequency of the most common value to the frequency of the second most common value is large. 
+
+```{r}
+
+df <- df %>% select(!caret::nearZeroVar(.))
+
+```
+
+
+
+#### Splitting data in to training and test set
+
+```{r}
+# Create the training and test datasets
+set.seed(100)
+# Step 1: Get row numbers for the training data
+trainRowNumbers <- createDataPartition(df$Yield, p=0.8, list=FALSE)
+# Step 2: Create the training  dataset
+trainData <- df[trainRowNumbers,]
+# Step 3: Create the test dataset
+testData <- df[-trainRowNumbers,]
+```
+
+#### Data preprocess applying centering and scaling
+
+```{r}
+preProcValues    <- preProcess(trainData, method = c("center", "scale"))
+trainTransformed <- predict(preProcValues, trainData)
+testTransformed  <- predict(preProcValues, testData)
+
+xTrain <- trainTransformed %>% select(-Yield)
+yTrain <- trainTransformed %>% select(Yield)
+
+xTest  <- testTransformed %>% select(-Yield)
+yTest  <- testTransformed %>% select(Yield)
+```
+
+<br>
+
+#### Fit a KNN model
+
+
+```{r knn-chem}
+knnChemModel <- train(x = xTrain,
+                  y = yTrain$Yield,
+                  method = "knn",
+                  preProc = c("center", "scale"),
+                  tuneLength = 10)
+
+knnChemModel
+
+```
+
+
+```{r}
+knnChemPred <- predict(knnChemModel, newdata = xTest)
+## The function 'postResample' can be used to get the test set
+## perforamnce values
+postResample(pred = knnChemPred, obs = yTest$Yield)
+```
+
+
+<br>
+
+#### Fit a Neural Network model
+
+First, we remove predictors to ensure that the maximum absolute pairwise correlation between the predictors is less than 0.75.
+
+```{r}
+
+tooHigh <- findCorrelation(cor(xTrain), cutoff = .75)
+
+tooHigh
+
+```
+Since the correlation vector is not empty, there are predictors to be removed. After removal, generate a new training and test sets of predictors. 
+
+```{r}
+trainXnnet <- xTrain[, -tooHigh]
+testXnnet  <- xTest[, -tooHigh]
+```
+
+
+We can now fit a neural network model using the existing training set.
+
+```{r nnet-chem}
+
+# Resource: Chapter 7.5 of textbook "Applied Predictive Modeling" by KJ
+
+## Create a specific candidate set of models to evaluate:
+nnetGrid <- expand.grid(.decay = c(0, 0.01, .1),
+                        .size = c(1:10),
+                        .bag = FALSE)
+
+# We can use caret to perform a grid search using 10-fold cross-validation.
+# The train function generates a resampling estimate of performance. Because
+# the training set size is not small, 10-fold cross-validation should produce
+# reasonable estimates of model performance. The function trainControl specifies
+# the type of resampling:
+ctrl <- trainControl(method = "cv", number = 10)
+
+nnetChemTune <- train(xTrain, yTrain$Yield,
+                  method = "avNNet",
+                  tuneGrid = nnetGrid,
+                  trControl = ctrl,
+                  ## Automatically standardize data prior to modeling
+                  ## and prediction
+                  preProc = c("center", "scale"),
+                  linout = TRUE,
+                  trace = FALSE,
+                  MaxNWts = 10 * (ncol(trainXnnet) + 1) + 10 + 1,
+                  maxit = 500)
+
+nnetChemTune
+```
+
+Predict using the test data set and get the model's performance values
+
+```{r}
+nnetChemPred <- predict(nnetChemTune, newdata = xTest)
+## The function 'postResample' can be used to get the test set
+## performance values
+postResample(pred = nnetChemPred, obs = yTest$Yield)
+```
+<br>
+
+#### Fit a MARS model
+
+
+```{r mars-chem}
+
+# Resource: Chapter 7.5 of textbook "Applied Predictive Modeling" by KJ
+# Resource: http://uc-r.github.io/mars
+
+library(earth)
+library(dplyr)
+
+## Create a specific candidate set of models to evaluate:
+marsGrid <- expand.grid(degree = 1:3,
+                        nprune = seq(2, 100, length.out = 10) %>% floor()
+  )
+
+# We can use caret to perform a grid search using 10-fold cross-validation.
+# The train function generates a resampling estimate of performance. Because
+# the training set size is not small, 10-fold cross-validation should produce
+# reasonable estimates of model performance. The function trainControl specifies
+# the type of resampling:
+ctrl <- trainControl(method = "cv", number = 10)
+
+
+# cross validated model
+tuned_ChemMARS <- train(
+  x = xTrain,
+  y = yTrain$Yield,
+  method = "earth",
+  metric = "RMSE",
+  trControl = ctrl,
+  tuneGrid = marsGrid
+)
+
+tuned_ChemMARS
+
+```
+
+Predict using the test data set and get the model's performance values
+
+```{r}
+marsChemPred <- predict(tuned_ChemMARS, newdata = xTest)
+## The function 'postResample' can be used to get the test set
+## performance values
+postResample(pred = marsChemPred, obs = yTest$Yield)
+```
+
+<br>
+
+#### Fit an SVM model
+
+
+```{r svm-chem}
+
+# Resource: Chapter 7.5 of textbook "Applied Predictive Modeling" by KJ
+
+library(kernlab)
+
+
+# We can use caret to perform a grid search using 10-fold cross-validation.
+# The train function generates a resampling estimate of performance. Because
+# the training set size is not small, 10-fold cross-validation should produce
+# reasonable estimates of model performance. The function trainControl specifies
+# the type of resampling:
+ctrl <- trainControl(method = "cv", number = 10)
+
+
+svmChemRTuned <- train(xTrain, yTrain$Yield,
+                   method = "svmRadial",
+                   preProc = c("center", "scale"),
+                   tuneLength = 14,
+                   trControl = ctrl)
+
+svmChemRTuned
+
+```
+
+
+Predict using the test data set and get the model's performance values
+
+```{r}
+svmChemPred <- predict(svmChemRTuned, newdata = xTest)
+## The function 'postResample' can be used to get the test set
+## performance values
+postResample(pred = svmChemPred, obs = yTest$Yield)
+```
+
+
+
+<br>
+
+### a. Which nonlinear regression model gives the optimal resampling and test set performance?
+
+
+Comparing all used models we can see that the **Neural Network (avNNet)** model yields the best performance in terms of the lowest RMSE = 0.5594510.
+
+
+Model                   |      RMSE  |  Rsquared |       MAE
+------------------------|------------|-----------|----------
+KNN                     |  0.6501442 | 0.4623051 | 0.5205731 
+Neural Network (avNNet) |  **0.5594510** | 0.6676931 | 0.4589402
+MARS                    |  0.5754156 | 0.6002260 | 0.4630585
+SVM                     |  0.5682649 | 0.5880968 | 0.4506714 
+
+
+<br>
+
+
+### b. Which predictors are most important in the optimal nonlinear regression model? Do either the biological or process variables dominate the list? How do the top ten important predictors compare to the top ten predictors from the optimal linear model?
+
+
+* The **Neural Network (avNNet)** model yields the best performance in terms of the lowest RMSE = 0.5594510. For such model, below are the predictors in order of importance. A plot of them is also provided.
+
+* The comparison of the top ten most important predictor between the NNET model and the Linear Model shows that the most important predictor is the `"ManufacturingProcess32"`. The rest of the predictors are ranked differently between the 2 models. The NNET model captured only one biological predictor `"BiologicalMaterial11"` in the top 10 list. While the Linear Model ranked 4 biological predictors in the top 10.
+
+Importance|Linear Model Top Predictors| Overall|NNET Model Predictors| Overall
+-------|-----------------------|-----------|-----------------------|-----------
+      `1|ManufacturingProcess32 |4.0148629 | ManufacturingProcess32 |100.00000`
+      2|ManufacturingProcess33 |2.5534232 | ManufacturingProcess13 |97.83640
+      3|ManufacturingProcess28 |2.2725763 | BiologicalMaterial06   |82.21744
+      4|ManufacturingProcess37 |2.1891986 | ManufacturingProcess17 |77.26777
+      5|ManufacturingProcess13 |2.0341703 | BiologicalMaterial03   |76.21094
+      6|ManufacturingProcess07 |1.7731421 | ManufacturingProcess36 |70.96498
+      7|BiologicalMaterial05   |1.6380685 | BiologicalMaterial02   |68.78876
+      8|ManufacturingProcess04 |1.6338725 | ManufacturingProcess09 |67.86384
+      9|ManufacturingProcess16 |1.5879600 | BiologicalMaterial12   |63.36203
+     10|BiologicalMaterial11   |1.5688048 | ManufacturingProcess06 |55.15443
+
+
+
+
+
+```{r}
+plot(caret::varImp(nnetChemTune), top = 10)
+
+caret::varImp(nnetChemTune)
+
+```
+
+
+<br>
+
+
+### c. Explore the relationships between the top predictors and the response for the predictors that are unique to the optimal nonlinear regression model. Do these plots reveal intuition about the biological or process predictors and their relationship with yield?
+
+
+
+```{r}
+library(gridExtra)
+
+top9nnetPred <- trainTransformed %>%
+   select(Yield, 
+          ManufacturingProcess13,
+          BiologicalMaterial06,
+          ManufacturingProcess17,
+          BiologicalMaterial03,
+          ManufacturingProcess36,
+          BiologicalMaterial02,
+          ManufacturingProcess09,
+          BiologicalMaterial12,
+          ManufacturingProcess06)
+
+plt01 <- top9nnetPred %>%
+  ggplot(aes(x = ManufacturingProcess13, y = Yield)) +
+  geom_point() + geom_smooth(method = "lm") + theme_bw()
+
+plt02 <- top9nnetPred %>%
+  ggplot(aes(x = BiologicalMaterial06, y = Yield)) +
+  geom_point()+ geom_smooth(method = "lm") + theme_bw()
+
+plt03 <- top9nnetPred %>%
+  ggplot(aes(x = ManufacturingProcess17, y = Yield)) +
+  geom_point() + geom_smooth(method = "lm") + theme_bw()
+
+plt04 <- top9nnetPred %>%
+  ggplot(aes(x = BiologicalMaterial03, y = Yield)) +
+  geom_point() + geom_smooth(method = "lm") + theme_bw()
+
+plt05 <- top9nnetPred %>%
+  ggplot(aes(x = ManufacturingProcess36, y = Yield)) +
+  geom_point() + theme_bw()
+
+plt06 <- top9nnetPred %>%
+  ggplot(aes(x = BiologicalMaterial02, y = Yield)) +
+  geom_point() + geom_smooth(method = "lm") + theme_bw()
+
+plt07 <- top9nnetPred %>%
+  ggplot(aes(x = ManufacturingProcess09, y = Yield)) +
+  geom_point() + geom_smooth(method = "lm") + theme_bw()
+
+plt08 <- top9nnetPred %>%
+  ggplot(aes(x = BiologicalMaterial12, y = Yield)) +
+  geom_point() + geom_smooth(method = "lm") + theme_bw()
+
+plt09 <- top9nnetPred %>%
+  ggplot(aes(x = ManufacturingProcess06, y = Yield)) +
+  geom_point() + geom_smooth(method = "lm") + theme_bw()
+
+# Biological Predictors
+grid.arrange(plt02, plt04, plt06, plt08, nrow = 2, top = "BIOLOGICAL PREDICTORS")
+
+# Process Predictors
+grid.arrange(plt01, plt03, plt05, plt07, plt09,
+             nrow = 2, top = "PROCESS PREDICTORS")
+
+```
+
+<br>
+<br>
+
+We use scatter plots between the top predictors and the response for the TOP 9 predictors that are unique to the optimal nonlinear regression model.
+
+The conclusion is:
+
+* All four Biological predictors (`BiologicalMaterial02`, `BiologicalMaterial36`, `BiologicalMaterial06`, `BiologicalMaterial12`) appear to have low positive correlation to the response variable.
+
+* The `ManufacturingProcess13` and `ManufacturingProcess17` appear to have low negative correlation to the response within a limited interval in each case. Also, there are a few outliers outside of the intervals.
+
+* Predictor `ManufacturingProcess17` appears to have no correlation to the response. The points seem to form parallel vertical lines every 2.5 units. I am not sure why this predictor would come up in the top 10 predictors for the optimal non-linear regression model.
+
+* Process predictors `ManufacturingProcess09` and `ManufacturingProcess06` seem to have a low positive correlation within a limited interval in each case.
+
+
+
+\newpage
+
+## KJ 8.1 (Regression Trees and Rule-Based Models)
+
+**Recreate the simulated data from Exercise 7.2:**
+
+```{r}
+library(mlbench)
+set.seed(200)
+simulated <- mlbench.friedman1(200, sd = 1)
+simulated <- cbind(simulated$x, simulated$y)
+simulated <- as.data.frame(simulated)
+colnames(simulated)[ncol(simulated)] <- "y"
+head(simulated)
+```
+
+### a. Fit a random forest model to all of the predictors, then estimate the variable importance scores:
+
+```{r}
+library(randomForest)
+#library(caret)
+library(tibble)
+model1 <- randomForest(y ~., data = simulated, importance = TRUE, ntree = 1000)
+rfImp1 <- varImp(model1, scale = FALSE)
+
+rfImp1 <- tibble::rownames_to_column(rfImp1, "Predictors")
+
+rfImp1 %>%
+  mutate(name = fct_reorder(Predictors, Overall)) %>%
+  ggplot(aes(x = name, y = Overall)) +
+    geom_segment(aes(x=Predictors, xend=Predictors, y=min(Overall), yend= Overall), color = "grey") +
+    geom_point(color = "orange", size = 4) +
+    xlab("Predictor") +
+    theme_light() +
+    coord_flip()
+```
+
+Did the random forest model significantly use the uninformative predictors (V6-V10)?
+
+
+
+### b. Now add an additional predictor that is highly correlated with one of the informative predictors. For example:
+
+```{}
+> simulated$duplicate1 <- simulated$V1 + rnorm(200) * .1
+> cor(simulated$duplicate1, simulated$V1)
+```
+
+Fit another random forest model to these data. Did the importance score for $V1$ change?
+
+What happens when you add another predictor that is also highly correlated with $V1$?
+
+
+
+
+### c. Use the `cforest` function in the `party` package to fit a random forest model using conditional inference trees. The `party` package function `varimp` can calculate predictor importance. The `conditional` argument of that function toggles between the traditional importance measure and the modified version described in `Strobl et al. (2007)`. Do these importances show the same pattern as the traditional random forest model?
+
+
+
+### d. Repeat this process with different tree models, such as boosted trees and Cubist. Does the same pattern occur?
+
+
+
+\newpage
+
+## KJ 8.2 (Regression Trees and Rule-Based Models)
+ 
+**Use a simulation to show tree bias with different granularities.**
+
+![](Fig8.25.PNG)
+
+
+
+
+\newpage
+
+## KJ 8.3 (Regression Trees and Rule-Based Models)
+
+
+
+
+
+
+
+
+
+
+
+\newpage
+
+## KJ 8.7 (Regression Trees and Rule-Based Models)
+
+**In stochastic gradient boosting the bagging fraction and learning rate will govern the construction of the trees as they are guided by the gradient. Althouth the optimal values of these paramaters should be obtained through the tuning process, it is helpful to understand how the magnitudes of these parameters affect magnitudes of variable importance. Figure 8.24 provides the variable importance plots for boosting using two extreme values for the bagging fraction (0.1 and 0.9) and the learning rate (0.1 and 0.9) for the solubility data. The left-hand plot has both parameters set to 0.1, and the right-hand plot has both set to 0.9:**
+
+### a. Why does the model on the right focus its importance on just the first few of predictors, whereas the model on the left spreads importance across more predictors?
+
+
+### b. Which model do you think would be more predictive of other samples?
+
+
+### c. How would increasing interaction depth affect the slope of predictor importance for either model in Fig. 8.24?
+
+
+
+
+
+\newpage
+
+# Week 6
+
+## HW BATCH #2 - Market Basket Analysis / Recommender Systems (a simple problem)
+
+**I am assigning one simple problem on market basket analysis / recommender systems.**
+
+**Imagine 10000 receipts sitting on your table. Each receipt represents a transcation with items that were purchased. The receipt is a representation of stuff that went into a customer's basket - and therefore 'Market Basket Analysis'.**
+
+**That is exactly what the Groceries Data Set contains: a collection of receipts with each line representing 1 receipt and the items purchased. Each line is called a** $$transaction$$ **and each column in a row represents an** $item.$
+
+**Here is the dataset =**[GroceryDataSet.csv](https://bbhosted.cuny.edu/bbcswebdav/pid-8461316-dt-announcement-rid-389564218_1/xid-389564218_1)**(comma separated file)**
+
+**You assignment is to use R to mine the data for association rules. You should report support confidence and lift and your top 10 rules by lift. Turn in as you would the other problems from HA and KJ. You should packaged this with your HW#2 set.**
+
+**NOTE: Bonus - Use a Python Library in addition to R and get a Bonus.**
+
+
+
+\newpage
+
+## References
