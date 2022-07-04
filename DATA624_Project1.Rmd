@@ -1063,6 +1063,40 @@ fa_S06_7 <- autoplot(fc_s06_ARIMA_7) + ylab("S06: Var07") + ylab("S01: Var01") +
 (fa_S06_5 + fa_S06_7)
 ```
 
+#### Auto ARIMA testing
+
+```{r}
+f_fit_s01_ARIMA_1 <- forecast(fit_s01_ARIMA_1, h=140)
+f_fit_s01_ARIMA_2 <- forecast(fit_s01_ARIMA_2, h=140)
+f_fit_s02_ARIMA_2 <- forecast(fit_s02_ARIMA_2, h=140)
+f_fit_s02_ARIMA_3 <- forecast(fit_s02_ARIMA_3, h=140)
+f_fit_s03_ARIMA_5 <- forecast(fit_s03_ARIMA_5, h=140)
+f_fit_s03_ARIMA_7 <- forecast(fit_s03_ARIMA_7, h=140)
+f_fit_s04_ARIMA_1 <- forecast(fit_s04_ARIMA_1, h=140)
+f_fit_s04_ARIMA_2 <- forecast(fit_s04_ARIMA_2, h=140)
+f_fit_s05_ARIMA_2 <- forecast(fit_s05_ARIMA_2, h=140)
+f_fit_s05_ARIMA_3 <- forecast(fit_s05_ARIMA_3, h=140)
+f_fit_s06_ARIMA_5 <- forecast(fit_s06_ARIMA_5, h=140)
+f_fit_s06_ARIMA_7 <- forecast(fit_s06_ARIMA_7, h=140)
+```
+
+#### Export Auto ARMIMA Predictions
+
+```{r}
+# export all predictions to excel
+write_xlsx(as.data.frame(f_fit_s01_ARIMA_1), "Project1\\ARIMA_s01_1.xlsx")
+write_xlsx(as.data.frame(f_fit_s01_ARIMA_2), "Project1\\ARIMA_s01_2.xlsx")
+write_xlsx(as.data.frame(f_fit_s02_ARIMA_2), "Project1\\ARIMA_s02_1.xlsx")
+write_xlsx(as.data.frame(f_fit_s02_ARIMA_3), "Project1\\ARIMA_s02_2.xlsx")
+write_xlsx(as.data.frame(f_fit_s03_ARIMA_5), "Project1\\ARIMA_s03_1.xlsx")
+write_xlsx(as.data.frame(f_fit_s03_ARIMA_7), "Project1\\ARIMA_s03_2.xlsx")
+write_xlsx(as.data.frame(f_fit_s04_ARIMA_1), "Project1\\ARIMA_s04_1.xlsx")
+write_xlsx(as.data.frame(f_fit_s04_ARIMA_2), "Project1\\ARIMA_s04_2.xlsx")
+write_xlsx(as.data.frame(f_fit_s05_ARIMA_2), "Project1\\ARIMA_s05_1.xlsx")
+write_xlsx(as.data.frame(f_fit_s05_ARIMA_3), "Project1\\ARIMA_s05_2.xlsx")
+write_xlsx(as.data.frame(f_fit_s06_ARIMA_5), "Project1\\ARIMA_s06_1.xlsx")
+write_xlsx(as.data.frame(f_fit_s06_ARIMA_7), "Project1\\ARIMA_s06_2.xlsx")
+```
 
 ## Model Selection
 
@@ -1120,7 +1154,7 @@ hw2_s06_2 <- HoltWinters(s06_ts[,2])
 f_hw2_s06_2 <- forecast(hw2_s06_2, h= 140)
 ```
 
-
+#### Export predictions to excel
 ```{r}
 # export all predictions to excel
 write_xlsx(as.data.frame(f_hw1_s01_1), "Project1\\s01_1.xlsx")
