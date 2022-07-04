@@ -1042,6 +1042,7 @@ skimr::skim_without_charts(py$groc)
 
 Convert data frame to a class `transactions` for perform association mining as follows:
 ```{r}
+library(arules)
 #Read the data as transactions class
 grocery <- read.transactions("GroceryDataSet.csv", sep = ",", rm.duplicates = TRUE)
 ```
@@ -1162,6 +1163,7 @@ inspect(sort(rules, by="lift", decreasing=TRUE)[1:10])
 
 Plot showing the measure of interestingness. The default reordering average measure (typically lift) pushes the rules with the highest lift value to the top-left corner of the plot.
 ```{r message=FALSE, warning=FALSE}
+library(arulesViz)
 sel <- subset(rules, lift>6)
 plot(sel, method="matrix", measure="lift")
 ```
