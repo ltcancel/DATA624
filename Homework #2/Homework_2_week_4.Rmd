@@ -337,6 +337,230 @@ What happens when you add another predictor that is also highly correlated with 
 
 **NOTE: Bonus - Use a Python Library in addition to R and get a Bonus.**
 
+___
+
+<center>
+
+![](BasketAnalysis.png)
+</center>
+
+### 1. Introduction
+
+The database contains customer transactions, 1000 receipts, that will be analyzed to predict customer's shopping trends and potentially provide bundle product recommendations with a more attractive price offer than buying the products individually.
+
+For example, information can be extracted on consumer behavior like *If someone buys coffee and creamer, then is likely to buy cookies with high probability".
+
+
+
+### 2. Required Libraries (Python and RMarkdown)
+
+Load some libraries and import data.
+```{r message=FALSE, warning=FALSE}
+#Load required R language libraries
+require(tidyverse)    # data manipulation
+require(arules)       # mining association rules and frequent itemsets
+require(arulesViz)    # visualization techniques for association rules
+require(RColorBrewer) # graphics color
+library(reticulate)   # R interface to Python
+```
+
+
+```{r}
+#Installing Python Packages 
+py_install("pandas")
+```
+
+
+### 3. Load Dataset (Python) 
+
+Loading the data set with python function, `pandas:read_csv method`. The data represents transaction data from a point of sales system on customer data.
+
+```{python}
+import pandas as pd
+groc = pd.read_csv("GroceryDataSet.csv", header=None)
+# Load data from a CSV file and hide the header
+print("\nReading the CSV file (without header)...\n", groc.head(10))
+```
+
+
+With the python function, `pandas:shape method`, view a tuple representing the dimensions of a object:
+```{python}
+groc.shape
+```
+
+... has 9835 observations (rows) recorded for 32 (columns) variables.
+
+
+View the data frame summary information.
+```{r message=FALSE, warning=FALSE}
+#Explore the data structure with an R function
+skimr::skim_without_charts(py$groc)
+```
+
+
+### 4. Convert to a Transactional Dataset - Market Basket Analysis using R
+
+Convert data frame to a class `transactions` for perform association mining as follows:
+```{r}
+#Read the data as transactions class
+grocery <- read.transactions("GroceryDataSet.csv", sep = ",", rm.duplicates = TRUE)
+```
+
+
+#### Transaction object
+```{r}
+grocery
+```
+
+
+#### Summary 
+```{r}
+summary(grocery)
+```
+
+
+### 5. Data Analysis with Visualizations
+
+
+Plots showing transactions object most frequent, absolute and relative, items in the data set.
+
+Transactions expressed as a whole number ...
+```{r}
+#Checking top 20 items sold in the dataset
+itemFrequencyPlot(grocery,topN=20,type="absolute",col=brewer.pal(7,'Greens'),space=(0.5),width=(0.5),xlab="Item Name",ylab="Frequency(absolute)",main="Absolute Item Frequency Plot")
+```
+
+
+Transactions expressed as a percentage ...
+```{r}
+#Again checking top 20 items sold in the given dataset with type=relative
+itemFrequencyPlot(grocery,topN=20,type="relative",col=brewer.pal(8,'Spectral'),space=(0.5),width=(0.5),xlab="Item Name",ylab="Frequency(relative)",main="Relative Item Frequency Plot")
+```
+
+*Observation:* Whole milk is the best selling product, followed by other vegetables. 
+
+
+### 6. Apriori Algorithm
+
+**Association Rules**
+
+The associated rules explain the relationship of:
+\n $$ \left\{ antecedent \right \} \rightarrow \left\{ consequent \right \}$$
+
+
+In the analysts, association rules is a data mining measures to compared the relationship between items using these metrics: (1) support, (2) confidence, and (3) lift.
+
+*Support* - refers to the popularity of a single item, based on how frequently customers buy it compared to other products.
+
+*Confidence* - refers to how often customers purchase tow products in an item set. 
+
+*Lift* - refers to the likelihood that a customer will purchase the first and second item together in a set. 
+
+
+#### Training the algorithm
+
+Train the selected algorithm (Apriori)
+```{r}
+#Training apriori algorithm on dataset
+rules <- apriori(data=grocery,parameter=list(support=0.001,confidence=0.9, minlen= 2, maxlen=10, target = "rules"))
+```
+
+
+The `association rules` metrics settings will find frequent itemsets that satisfies `0.1% Support, 90% Confidence, and Maximum of number of items at 10`.
+
+The total number of rule is 129, with a minimum purchase of 2 item and maximum is 10.
+
+
+```{r}
+summary(rules) # This gives set of rules generated here it is 129, number of transactions, support and confidence values that we have given in previous code
+```
+* Set of rules: 129.
+* Rule length distribution (LHS + RHS): 10 rules with a length of 3 items; 57 rules with a length of 4 items; 56 rules with a length of 5 items; 6 rules with a length of 6 items.
+* Summary of quality measures: min, max, median, mean and quantile values for support, confidence and lift.
+* Mining info: number of transactions, support-threshold and confidence-threshold.
+
+
+*Inspect the top 10 rules we obtained and sorted by confidence:*
+
+The `lhs` represents items already taken in a basket, `rhs` represents items frequently taken together along with purchased items. 
+
+```{r}
+#visualize the results
+inspect(sort(rules, by="confidence", decreasing=TRUE)[1:10]) 
+#`high-confidence' rules
+# show the support, lift and confidence for the first 10 rules
+```
+
+
+*Confidence Interpretation:* The rules with confidence of 1 (`see rules_conf` above) imply that, whenever the LHS item is purchased, the RHS item was purchased 100% of the time. Popular items that are derive from this analysis are: **{rice, sugar} with {whole milk}** and **{canned fish, hygiene articles} with {whole milk}**.
+
+
+
+
+*Inspect the top 10 rules we obtained and sorted by lift:*
+
+The recommendation is based on historical preference and ratings to find similarities between users and items.
+
+```{r}
+#visualize the results
+inspect(sort(rules, by="lift", decreasing=TRUE)[1:10]) 
+#`high-confidence' rules
+# show the support, lift and confidence for the first 10 rules
+```
+
+
+*Lift Interpretation:* A rule with a lift count (`see rules_lift` above) imply that, the items in LHS and RHS are `n times` more likely to be purchased together compared to the purchases when they are assumed to be unrelated. For example, **{liquor, red/blush wine} paired with {bottled beer}** has a high support and confidence threshold as a bundled transactional sale. 
+
+**Interpretation of Rules sorted by LIFT**
+* 90% of the customers who purchased `butter, cream cheese, root vegetables` also purchased `yogurt` is `7 times` more likely to purchase the itemset as a bundle sale.
+* 100% of the customers who purchased `brown bread, pip fruit, whipped/sour cream` also purchased `other vegetables` is `5 times` more likely to purchase the itemset as a bundle sale.
+
+
+#### Visualizing association rules
+
+**Matrix**
+
+Plot showing the measure of interestingness. The default reordering average measure (typically lift) pushes the rules with the highest lift value to the top-left corner of the plot.
+```{r message=FALSE, warning=FALSE}
+sel <- subset(rules, lift>6)
+plot(sel, method="matrix", measure="lift")
+```
+
+
+**A Grouped Matrix of association rules**
+
+Plot showing group matrix-based visualization. Antecedents (columns) in the matrix are grouped using clustering.  The most interesting item in the group (highest support in the group to support in all rules): liquor, red/blush wine.
+```{r}
+plot(rules, method="grouped", control = list(k = 10))
+```
+
+
+```{}
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("Rgraphviz")
+```
+
+**A Graph model**
+
+Visualize the `10 rules` (or itemsets) as a graph with items as labeled vertices, and rules (or itemsets) represented as vertices connected to items using arrows. 
+
+```{r message=FALSE, warning=FALSE}
+plot(rules[1:5], method = "graph")
+```
+
+
+
+```{r warning=FALSE, message=TRUE}
+plot(rules[1:10], method = 'graph', control = list(type = "itemsets", col=brewer.pal(6, 'Dark2')))
+```
+
+
+
+
+
+
 
 
 \newpage
