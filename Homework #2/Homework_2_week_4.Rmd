@@ -35,6 +35,11 @@ library(dplyr)
 library(RANN)
 library(GGally)
 library(naniar)
+library(party)
+library(Cubist)
+library(gbm)
+library(randomForest)
+library(tibble)
 ```
 
 
@@ -898,46 +903,204 @@ head(simulated)
 ### a. Fit a random forest model to all of the predictors, then estimate the variable importance scores:
 
 ```{r}
-library(randomForest)
-#library(caret)
-library(tibble)
-model1 <- randomForest(y ~., data = simulated, importance = TRUE, ntree = 1000)
-rfImp1 <- varImp(model1, scale = FALSE)
+set.seed(600)
+
+
+model1 <- randomForest(y ~., data = simulated, importance = TRUE, ntree = 1000) # model
+
+rfImp1 <- varImp(model1, scale = FALSE) # Random Forest Importance Scores
 
 rfImp1 <- tibble::rownames_to_column(rfImp1, "Predictors")
+rfImp1
+rfImp1[order(-rfImp1$Overall),]
+```
 
+Did the random forest model significantly use the uninformative predictors (V6-V10)?
+
+Looking at the table above, the importance scores for the predictors indicate the model relies heavily upon V1, V4, V2, and V5 respectively, unlike predictors V3 and V6-V10 not having much importance to the model
+
+```{r}
+# Visualization for original models' scores
 rfImp1 %>%
   mutate(name = fct_reorder(Predictors, Overall)) %>%
   ggplot(aes(x = name, y = Overall)) +
     geom_segment(aes(x=Predictors, xend=Predictors, y=min(Overall), yend= Overall), color = "grey") +
     geom_point(color = "orange", size = 4) +
-    xlab("Predictor") +
-    theme_light() +
+    xlab("Model 1 Predictor Importance") +
+    theme_light() + theme_classic() +
     coord_flip()
 ```
 
-Did the random forest model significantly use the uninformative predictors (V6-V10)?
-
 ### b. Now add an additional predictor that is highly correlated with one of the informative predictors. For example:
 
-```{}
-> simulated$duplicate1 <- simulated$V1 + rnorm(200) * .1
-> cor(simulated$duplicate1, simulated$V1)
+<<<<<<< Updated upstream
+### b. Now add an additional predictor that is highly correlated with one of the informative predictors. For example:
+=======
+```{r}
+# From book
+
+simulated$duplicate1 <- simulated$V1 + rnorm(200) * .1
+cor(simulated$duplicate1, simulated$V1)
 ```
 
-Fit another random forest model to these data. Did the importance score for $V1$ change?
+Fit another random forest model to these data. Did the importance score for $V1$ change? What happens when you add another predictor that is also highly correlated with $V1$?
 
-What happens when you add another predictor that is also highly correlated with $V1$?
+Looking at the dataframe below, the importance of V1 decreased when a new V1-correlated predictor was introduced. V4, V2, V1, the New Variable, and V5  respectively are all the most important predictors from this random forest model. Compared to the last model, these top predictors bear a similar importance and order.
+
+```{r}
+model2 <- randomForest(y~., data = simulated,  importance = T, ntree = 1000)
+rfImp2 <- varImp(model2, scale = F)
+
+Prednames <- c("V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V10", "NEW") 
+rfImp2$Variables <- factor(rownames(rfImp2), levels = Prednames)
+
+rfImp2[order(-rfImp2$Overall),]
+```
 
 ### c. Use the `cforest` function in the `party` package to fit a random forest model using conditional inference trees. The `party` package function `varimp` can calculate predictor importance. The `conditional` argument of that function toggles between the traditional importance measure and the modified version described in `Strobl et al. (2007)`. Do these importances show the same pattern as the traditional random forest model?
 
+Looking at these importances, they resemble a close pattern to the traditional random forest model with V1, V2, V4, and V5 all having the most importance out of all predictors in varying orders.
+
+[cforest](https://www.rdocumentation.org/packages/partykit/versions/1.2-16/topics/cforest)
+
+[Conditional Random Forests](https://stephsus.github.io/shih_randomforests.pdf)
+
+```{r}
+set.seed(555)
+cforest1 <- cforest(y~., data = simulated[,1:11], controls = cforest_control(ntree = 1000))
+```
+
+```{r}
+set.seed(444)
+cforest2 <- cforest(y~., data = simulated[,1:11], controls = cforest_control(ntree = 1000))
+```
+
+```{r}
+# Variable Importances 
+
+cfImp1 <- varimp(cforest1)
+cfImp2 <- varimp(cforest2)
+
+cfImp1_cond <- varimp(cforest1, conditional = T)
+cfImp2_cond <- varimp(cforest2, conditional = T)
+```
+
+```{r}
+# Comparing performances with conditional and non conditional random forests
+cfImp1 <- data.frame(Original = cfImp1, Variable = factor(names(cfImp1), levels = Prednames))
+
+cfImp2 <- data.frame(Extra = cfImp2, Variable = factor(names(cfImp2), levels = Prednames))
+
+cfImp1_cond <- data.frame(CondInf = cfImp1_cond, Variable = factor(names(cfImp1_cond), levels = Prednames))
+
+cfImp2_cond <- data.frame(Extra_CondInf = cfImp2_cond, Variable = factor(names(cfImp2_cond), levels = Prednames))
+
+cfImp1[order(-cfImp1$Original),]
+cfImp2[order(-cfImp2$Extra),]
+cfImp1_cond[order(-cfImp1_cond$CondInf),]
+cfImp2_cond[order(-cfImp2_cond$Extra_CondInf),]
+```
+
+
 ### d. Repeat this process with different tree models, such as boosted trees and Cubist. Does the same pattern occur?
 
+Per the wording of the problem, it does not seem boosted trees is a required method of random forest for this question. therefore, Bagging and Cubist methods were used. 
+
+Using bagging and cubist methods, the same pattern does generally occur. In the case of bagging, V5 has a higher rank in the importance of its weight, and V3 has less importance as a predictor. In the cubist method, this resembles closer to the original pattern.
+
+```{r}
+# Boosted Trees: original
+# Specifying t-distribution
+# Having difficulty, might omit
+
+# gbmModel <- gbm(y~., data = simulated, distribution = "tdist")
+# 
+# booImp1 <- varImp(gbmModel)
+
+```
+
+```{r}
+# Trying bagging method
+set.seed(777)
+bagfit1 <- ipred::bagging(y~., data = simulated[,1:11], nbag = 60)
+
+bag1Imp <- varImp(bagfit1)
+
+bag1Imp$Variable <- factor(rownames(bag1Imp), levels = Prednames)
+
+bag1Imp[order(-bag1Imp$Overall),]
+```
+
+```{r}
+set.seed(888)
+bagfit2 <- ipred::bagging(y~., data = simulated[,1:11], nag = 60)
+
+bag2Imp <- varImp(bagfit2)
+
+
+bag2Imp$Variable <- factor(rownames(bag2Imp), levels = Prednames)
+
+bag2Imp[order(-bag2Imp$Overall),]
+```
+
+
+```{r}
+# Cubist: original
+set.seed(222)
+
+cbfit1 <- cubist(x = simulated[, 1:10], y = simulated$y, committees = 100)
+
+cbImp1 <- varImp(cbfit1)
+names(cbImp1) <- "Original"
+cbImp1$Variable <- factor(rownames(cbImp1), levels = Prednames)
+
+cbImp1[order(-cbImp1$Variable),]
+```
+
+```{r}
+# Cubist: extra
+set.seed(111)
+
+cbfit2 <- cubist(x = simulated[ , names(simulated) !="y"], y = simulated$y, committees = 100)
+
+cbImp2 <- varImp(cbfit2)
+names(cbImp1) <- "Extra"
+cbImp2$Variable <- factor(rownames(cbImp2), levels = Prednames)
+
+cbImp2[order(-cbImp2$Variable),]
+```
+
+>>>>>>> Stashed changes
 \newpage
 
 ## KJ 8.2 (Regression Trees and Rule-Based Models)
  
 **Use a simulation to show tree bias with different granularities.**
+
+Looking at the plots below, we can see the relationship between the predictor and response. The predictor, X1, is a binomial random variable (1,2) of 450 observations which are used to create homogeneous responses according to the predictor. X2 on the other hand, which is comprised of 450 observations as well, is much more random, unrelated to the response, and therefore considered "granular". *Would like to add more commentary to this idea of granularity and what the author means*
+
+```{r, warning = FALSE}
+set.seed(222)
+
+x1 <- rep(1:2, each = 450)
+
+y <- x1 + rnorm(450, mean = 0, sd = 1)
+```
+
+```{r}
+set.seed(111)
+
+x2 <- rnorm(450, mean = 0, sd = 2)
+```
+
+```{r}
+simulated_data <- data.frame(Y = y, X1 = x1, X2 = x2)
+```
+
+```{r}
+plot(simulated_data$Y ~ simulated_data$X1 + simulated_data$X2)
+```
+
 
 ![](Fig8.25.PNG)
 
