@@ -1,0 +1,638 @@
+---
+title: "MarketBasket"
+author: "Coffy Andrews-Guo"
+date: '2022-07-02'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::knit_engines$set(python = reticulate::eng_python)
+```
+
+## HW BATCH #2 - Market Basket Analysis / Recommender Systems (a simple problem)
+___
+**I am assigning one simple problem on market basket analysis / recommender systems.**
+
+**Imagine 10000 receipts sitting on your table. Each receipt represents a transcation with items that were purchased. The receipt is a representation of stuff that went into a customer's basket - and therefore 'Market Basket Analysis'.**
+
+**That is exactly what the Groceries Data Set contains: a collection of receipts with each line representing 1 receipt and the items purchased. Each line is called a** $$transaction$$ **and each column in a row represents an** $item.$
+
+**Here is the dataset =**[GroceryDataSet.csv](https://bbhosted.cuny.edu/bbcswebdav/pid-8461316-dt-announcement-rid-389564218_1/xid-389564218_1)**(comma separated file)**
+
+**You assignment is to use R to mine the data for association rules. You should report support confidence and lift and your top 10 rules by lift. Turn in as you would the other problems from HA and KJ. You should packaged this with your HW#2 set.**
+
+**NOTE: Bonus - Use a Python Library in addition to R and get a Bonus.**
+___
+
+<center>
+
+![](BasketAnalysis.png)
+</center>
+
+### 1. Introduction
+
+The database contains customer transactions, 1000 receipts, that will be analyzed to predict customer's shopping trends and potentially provide bundle product recommendations with a more attractive price offer than buying the products individually.
+
+For example, information can be extracted on consumer behavior like *If someone buys coffee and creamer, then is likely to buy cookies with high probability".
+
+
+
+### 2. Required Libraries (Python and RMarkdown)
+
+Load some libraries and import data.
+```{r message=FALSE, warning=FALSE}
+#Load required R language libraries
+require(tidyverse)    # data manipulation
+require(arules)       # mining association rules and frequent itemsets
+require(arulesViz)    # visualization techniques for association rules
+require(RColorBrewer) # graphics color
+library(reticulate)   # R interface to Python
+```
+
+
+```{r eval=FALSE}
+#Installing Python Packages 
+py_install("pandas")
+py_install("mlxtend")
+py_install("seaborn")
+```
+
+
+### 3. Load Dataset (Python) 
+
+Loading the data set with python function, `pandas:read_csv method`. The data represents transaction data from a point of sales system on customer data.
+
+```{python}
+import pandas as pd
+groc = pd.read_csv("GroceryDataSet.csv", header=None)
+# Load data from a CSV file and hide the header
+print("\nReading the CSV file (without header)...\n", groc.head(10))
+```
+
+
+With the python function, `pandas:shape method`, view a tuple representing the dimensions of a object:
+```{python}
+groc.shape
+```
+... has 9835 observations (rows) recorded for 32 (columns) variables.
+
+
+View the data frame summary information in R (add `py$` to the variable).
+```{r message=FALSE, warning=FALSE}
+#Explore the data structure with an R function
+skimr::skim_without_charts(py$groc)
+```
+
+
+### 4. Convert to a Transactional Dataset - Market Basket Analysis using R
+
+Convert data frame to a class `transactions` for perform association mining as follows:
+```{r}
+#Read the data as transactions class
+grocery <- read.transactions("GroceryDataSet.csv", sep = ",", rm.duplicates = TRUE)
+```
+
+
+#### 4.1 Transaction object
+```{r}
+grocery
+```
+
+
+#### 4.2 Summary 
+```{r}
+summary(grocery)
+```
+The `summary(grocery)` informs us about the transaction object output:
+
+* There are **9835 transactions (rows) and 169 items (columns).**
+
+* **Density** tells the percentage of non-zero cells in the sparse matrix.
+
+* Summary tell the most frequent items.
+
+* **Element (itemset/transaction) length distribution:** Indicates how many transactions are there for 1-itemset, for 2-itemset and so on. 
+
+<br>
+
+### 5. Data Analysis with Visualizations
+
+
+Plots showing transactions object most frequent, absolute and relative, items in the data set.
+
+Independent transactions expressed as a whole number ...
+```{r}
+#Checking top 20 items sold in the dataset
+itemFrequencyPlot(grocery,topN=20,type="absolute",col=brewer.pal(7,'Greens'),space=(0.5),width=(0.5),xlab="Item Name",ylab="Item Frequency(absolute)",main="Absolute Item Frequency Plot")
+```
+
+The amount of times an item/transaction have appeared as compared to others, expressed as a percentage ...
+```{r}
+#Again checking top 20 items sold in the given dataset with type=relative
+itemFrequencyPlot(grocery,topN=20,type="relative",col=brewer.pal(8,'Spectral'),space=(0.5),width=(0.5),xlab="Item Name",ylab="Frequency(relative)",main="Relative Item Frequency Plot")
+```
+
+*Observation:* Whole milk is the best selling product, followed by other vegetables. 
+
+<br>
+
+### 6. Apriori Algorithm (R)
+
+**Association Rules**
+
+The associated rules explain the relationship of:
+
+$ \left\{ antecedent \right \} \rightarrow \left\{ consequent \right \}$
+
+where \hspace$A \rightarrow B[Support, Confidence]$
+
+
+In the analysts, association rules is a data mining measures to compare the relationship between items using these metrics: (1) support, (2) confidence, and (3) lift.
+
+*Support* - refers to the popularity of a single item, based on how frequently customers buy it compared to other products.
+
+*Confidence* - refers to how often customers purchase two products in an item set (the percentage in which B is bought with A). 
+
+*Lift* - refers to the likelihood that a customer will purchase the first and second item together in a set. 
+
+
+#### 6.1 Training the algorithm
+
+Train the selected algorithm (Apriori)
+```{r}
+#Training apriori algorithm on dataset
+rules <- apriori(data=grocery,parameter=list(support=0.001,confidence=0.9, minlen= 2, maxlen=10, target = "rules"))
+```
+
+The `association rules` metrics settings will find frequent itemsets that satisfies `0.1% Support, 90% Confidence, and Maximum of number of items at 10`.
+
+The total number of rules is 129, with a minimum purchase of 2 item and maximum is 10.
+
+
+```{r}
+summary(rules) # This gives set of rules generated here it is 129, number of transactions, support and confidence values that we have given in previous code
+```
+`Summary (rules)` shows the following:
+
+* **Total number rules:** The set of 129 rules.
+
+* **Rule length distribution (LHS + RHS):** A length of 4 items has the most rules: 57 and length of 6 items have the lowest number of rules:6.
+
+* **Summary of quality measures:** min, max, median, mean and quantile values for support, confidence and lift.
+
+* **Information used for creating rules:** The data, support, and confidence.
+
+<br>
+
+View the top 10 rules:
+```{r}
+#show the top 10 rules
+options(digits = 2)
+inspect(rules[1:10])
+```
+
+
+*Convert rules into data frame*
+```{r eval=FALSE}
+rules2 <- rules
+rules3 <- as(rules2, "data.frame")
+write.csv(rules3, file = "D:/CUNY SPS/2022 Summer Course/DATA624/rules.csv", sep=",")
+```
+
+
+*Inspect the top 10 rules sorted by lift:*
+
+The recommendation is based on historical preference and ratings to find similarities between users and items.
+
+```{r}
+options(digits = 2)
+#visualize the results
+inspect(sort(rules, by="lift", decreasing=TRUE)[1:10]) 
+#`high-confidence' rules
+# show the support, lift and confidence for the first 10 rules
+```
+
+*Lift Interpretation:* A rule with a lift count (`see rules_lift` above) imply that, the items in LHS and RHS are `n times` more likely to be purchased together compared to the purchases when they are assumed to be unrelated. For example, **{liquor, red/blush wine} paired with {bottled beer}** has a high support and confidence threshold as a bundled transactional sale. 
+
+**Interpretation of Rules sorted by LIFT**
+* 90% of the customers who purchased `butter, cream cheese, root vegetables (lhs)` also purchased `yogurt (rhs)` is `7 times` more likely to purchase the itemset as a bundle sale.
+* 100% of the customers who purchased `brown bread, pip fruit, whipped/sour cream (lhs)` also purchased `other vegetables (rhs)` is `5 times` more likely to purchase the itemset as a bundle sale.
+
+<br> 
+
+
+*Inspect the top 10 rules sorted by confidence:*
+
+The `lhs` represents items already taken in a basket, `rhs` represents items frequently taken together along with purchased items. 
+
+```{r}
+options(digits = 2)
+#visualize the results
+inspect(sort(rules, by="confidence", decreasing=TRUE)[1:10]) 
+#`high-confidence' rules
+# show the support, lift and confidence for the first 10 rules
+```
+
+*Confidence Interpretation:* The rules with confidence of 1 (`see rules_conf` above) imply that, whenever the LHS item is purchased, the RHS item was purchased 100% of the time. Popular items that are derive from this analysis are: **{rice, sugar} with {whole milk}** and **{canned fish, hygiene articles} with {whole milk}**.
+
+<br>
+
+#### 6.2 Visualizing Association Rules
+
+**Matrix**
+
+Plot showing the measure of interestingness. The default reordering average measure (typically lift) pushes the rules with the highest lift value to the top-left corner of the plot.
+```{r message=FALSE, warning=FALSE}
+sel <- subset(rules, lift>6)
+plot(sel, method="matrix", measure="lift")
+```
+
+
+**A Grouped Matrix of Association Rules**
+
+Plot showing group matrix-based visualization. Antecedents (columns) in the matrix are grouped using clustering.  The most interesting item in the group (highest support in the group to support in all rules): liquor, red/blush wine.
+```{r}
+plot(rules, method="grouped", control = list(k = 10))
+```
+
+
+```{r eval=FALSE}
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("Rgraphviz")
+```
+
+
+**A Graph model**
+
+Visualize the `10 rules` (or itemsets) as a graph with items as labeled vertices, and rules (or itemsets) represented as vertices connected to items using arrows. 
+
+```{r}
+# Filter rules with lift greater than 7
+subRules<-rules[quality(rules)$lift>7]
+
+top10subRules <- head(subRules, n = 10, by = "lift")
+```
+
+
+```{r}
+plot(top10subRules, method = "graph",  engine = "htmlwidget")
+```
+```{r}
+#export/save as a Graphviz dot-file
+saveAsGraph(head(subRules, n = 10, by = "lift"), file = "rules.graphml")
+```
+
+
+```{r warning=FALSE, message=TRUE}
+plot(rules[1:10], method = 'graph', control = list(col=brewer.pal(6, 'Dark2')))
+```
+
+
+### 7. Apriori Algorithm (Python)
+
+The `Python` apriori algorithm will be used as a comparison to `R` for Association Rule Mining. 
+
+#### 7.1 Required Libraries (Python)
+
+**Install Required Modules:**
+
+```{python}
+import numpy as np
+#import pandas as pd
+import seaborn as sns #table style
+import warnings # mask chunk code warnings 
+```
+
+```{python}
+# importing data mining module
+from apyori import apriori
+```
+
+```{python}
+from mlxtend.preprocessing import TransactionEncoder
+```
+
+
+```{python}
+# importing required plots module
+import plotly.express as px  #plotly tree map
+import matplotlib.pyplot as plt #treemap
+from IPython.display import display
+```
+
+#### 7.2 Load Data Set
+
+Data was loaded in **Section 3. Load Dataset (Python)**
+
+<br>
+
+#### 7.3 Exploring the Data set
+
+Store all purchased items in a NumPy array for easy identification of NULL values in dataset. 
+```{python, warning = FALSE, message= FALSE}
+warnings.filterwarnings('ignore')
+
+# Gather All Items of Each Transactions into Numpy Array
+transactions = []
+for i in range(0, groc.shape[0]):
+    for j in range(0, groc.shape[1]):
+        transactions.append(groc.values[i,j])
+
+# converting to numpy array
+transactions = np.array(transactions)
+print(transactions, 10)
+```
+
+
+The data is in NumPy array format. We can now remove all the null values and print out the top 10 frequently occurring items.
+
+```{python}
+#  Transform Them a Pandas DataFrame
+df = pd.DataFrame(transactions, columns=["items"]) 
+
+# Put 1 to Each Item For Making Countable Table, to be able to perform Group By
+df["incident_count"] = 1 
+
+#  Delete NaN Items from Dataset
+indexNames = df[df['items'] == "nan" ].index
+df.drop(indexNames , inplace=True)
+
+# Delete Nan Items in rows
+df_new = df.dropna()
+
+# Making a New Appropriate Pandas DataFrame for Visualizations  
+df_table = df_new.groupby("items").sum().sort_values("incident_count", ascending=False).reset_index()
+
+#  Initial Visualizations
+display(df_table.head(10))
+```
+
+These are the top 10 most purchased items by customers.
+
+*Counting number of missing values*
+```{python}
+print("\nResulting in a Pandas Series containing the number of missing values in each column...\n", df_new.isna().sum())
+```
+
+#### 7.5 Visualization - Top Items
+
+**Treemap to visualize the purchase**
+
+```{python}
+# to have a same origin
+df_table["10"] = "Top 10 items" 
+
+# creating tree map using plotly
+fig = px.treemap(df_table.head(10), path=["items", 'incident_count', '10'], values='incident_count',
+                  color=df_table["incident_count"].head(10), hover_data=['items'],
+                  color_continuous_scale='Blues',
+                )
+# ploting the treemap - see saved file "newplot.png"
+plt.imshow(fig)
+plt.show()
+#fig.show()
+```
+
+<center>
+![treemap](newplot.png)
+</center>
+
+
+
+```{python}
+pt = plt.hist(x="items", data=df, nbins = 60)
+plt.imshow()
+plt.show(pt)
+```
+
+#### 7.6 Converting Data Set to a Transaction Object
+
+**Pre-processing dataset**
+
+We will perform the conversion of the transactions into equi-length transactions as shown in the following code:
+
+```{python}
+# Data Cleaning step
+# replacing empty value with 0.
+pygroc = groc
+pygroc.fillna(0,inplace=True)
+
+# Data Pre-processing step
+# for using aprori , need to convert data in list format..
+
+transaction = []
+
+for i in range(0,len(pygroc)):
+    transaction.append([str(pygroc.values[i,j]) for j in range(0,20) if str(pygroc.values[i,j])!='0'])
+```
+
+The above code replaces `nan` values with zero's, then initialized the list `transaction` and stored the transactions of length 20 in it. We had to remove the null values again inside transactions when items were fewer than 20.
+
+
+```{python}
+## verifying - by printing the 0th transaction
+print("\nVerifying the 1st, Index 0, transaction\n", transaction[0])
+```
+
+```{python}
+## verifying - by printing the 1st transaction
+print("\nVerifying the 2nd, Index 1, transaction\n", transactions[1])
+```
+
+
+#### 7.7 Implement Apriori Algorithm (Python)
+
+Performing the association rules from our data with the `apriori` class constructor.
+```{python}
+Pyrules = apriori(transaction, min_support=0.001, min_confidence = 0.9, min_length = 2, max_length = 10)
+```
+
+
+The apriori algorithm's associated rules are stored inside the `rules` generator object as shown: 
+```{python}
+Pyrules
+```
+
+```{python}
+# all rules need to be converted in a list..
+Pyresults = list(Pyrules)
+#Pyresults
+
+# convert result in a dataframe for further operation...
+dfresults = pd.DataFrame(Pyresults)
+
+dfresults.head()
+```
+
+```{python}
+# keep support in a separate data frame so we can use later.. 
+support = dfresults.support
+```
+
+**Converting orderstatistic in a proper format.**
+
+Order statistic has lhs => rhs as well rhs => lhs. Let's choose first one which is 'df_results['ordered_statistics'][i][0]'
+
+```{python}
+#all four empty list which will contain lhs, rhs, confidence and lift respectively.
+first_values = []
+second_values = []
+third_values = []
+fourth_value = []
+
+# loop number of rows time and append 1 by 1 value in a separate list.. 
+# first and second element was frozenset which need to be converted in list..
+for i in range(dfresults.shape[0]):
+    single_list = dfresults['ordered_statistics'][i][0]
+    first_values.append(list(single_list[0]))
+    second_values.append(list(single_list[1]))
+    third_values.append(single_list[2])
+    fourth_value.append(single_list[3])
+```
+
+
+```{python}
+# convert all four list into dataframe for further operation..
+lhs = pd.DataFrame(first_values)
+rhs = pd.DataFrame(second_values)
+
+confidence=pd.DataFrame(third_values,columns=['Confidence'])
+
+lift=pd.DataFrame(fourth_value,columns=['lift'])
+```
+
+
+```{python}
+# concat all list together in a single dataframe
+df_final = pd.concat([lhs,rhs,support,confidence,lift], axis=1)
+df_final
+```
+
+```{python}
+'''
+ we have some of place only 1 item in lhs and some place 3 or more so we need to a proper represenation for User to understand. 
+ replacing none with ' ' and combining three column's in 1 
+ example : coffee,none,none is converted to coffee, ,
+'''
+df_final.fillna(value=' ', inplace=True)
+df_final.head()
+```
+
+```{python}
+#set column name
+df_final.columns = ['lhs',1,2,3,4,'rhs',5,'support','confidence','lift']
+df_final.head()
+```
+
+```{python}
+# add all three column to lhs itemset only
+df_final['lhs'] = df_final['lhs'] + str(", ") + df_final[1] + str(", ") + df_final[2] + str(", ") + df_final[3] + str(", ") + df_final[4]
+
+df_final['rhs'] = df_final['rhs']+str(", ") + df_final[5] + str(", ") 
+```
+
+
+```{python}
+df_final.head()
+```
+
+
+```{python}
+#drop columns 1,2,3,4, and 5 because now we already appended to lhs column.
+
+df_final.drop(columns=[1,2,3,4,5],inplace=True)
+```
+
+
+```{python}
+## Showing top 10 items, based on lift.  Sorting in desc order
+df_final.sort_values('lift', ascending=False).head(10)
+```
+
+
+```{python}
+np.set_printoptions(suppress=True)
+print(df_final.nlargest(n = 10, columns = 'lift'))
+```
+
+
+```{python}
+np.set_printoptions(suppress=True)
+print(df_final.nlargest(n = 5, columns = 'confidence'))
+```
+
+```{r}
+pyapfile <- py$df_final
+
+py_apriori <- data.frame((pyapfile))
+
+print(py_apriori)
+```
+
+
+
+### 8. Conclusion
+
+The Market Basket Analysis used the `Apriori Algorithm` to perform `Association Rule` based on two programming languages `R and Python`. The comparison was performed in `RStudio` operating system, and Python `reticulate package` was loaded to use within R session. 
+
+The sample transaction data set provided these insights based on the programming languages:
+
+```{r}
+# Apriori Algorithm with R
+options(digits = 2)
+#visualize the results
+paste0("Apriori Algorith with R")
+inspect(sort(rules, by="lift", decreasing=TRUE)[1:5]) 
+```
+
+```{r}
+# Apriori Algorithm with Python
+options(digits = 2)
+#visualize the results
+head(py_apriori[order(-py_apriori$lift), ], 5) 
+```
+
+**The associations sorted by `lift` shows:**
+
+* R - customers who bought `liquor, red/blush wine (lhs)` also bought `bottled beer (rhs)` with the highest lift value (11.2) and listed as the second in Python (lift value = 11.3).
+
+* Python - customers who `oil, root vegetables, tropical fruit, yogurt (lhs)` also bought `whole milk, other vegetables (rhs)` with the highest lift value (12.1) and have a different rank, (rhs), and lift in R. 
+
+
+**The association rules based on apriori algorithm parameter:**
+
+`support=0.001,confidence=0.9, minlen= 2, maxlen=10`
+
+* R - generated a set of 129 rules
+
+* Python - generated a set 97 rules
+
+
+**Visualization**
+
+In RStudio, using Python visualizations packages, `matplotlib and Seaborn`, are cumbersome for in-experience Python users. The data visualization with a Python script require plug-ins for inline plots and require additional help aids to successful install.  
+
+
+
+
+### 8. References:
+
+* Bhalla, D. (2015). Market Basket Analysis with R. ListenData. https://www.listendata.com/2015/12/market-basket-analysis-with-r.html
+
+* Abbas, M. M. (2022, May 6). Python Apriori Algorithm. Delft Stack. https://www.delftstack.com/howto/python/apriori-algorithm-python/#:%7E:text=%20Apriori%20Algorithm%20in%20Python%20%201%20Our,2%20until%20the%20specified%20k%20is. . .%20More%20
+
+
+
+
+
+
+
+
+
+
+
+
+
