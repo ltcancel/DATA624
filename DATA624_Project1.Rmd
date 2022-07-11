@@ -1171,3 +1171,72 @@ write_xlsx(as.data.frame(f_hw1_s06_1), "Project1\\s06_1.xlsx")
 write_xlsx(as.data.frame(f_hw2_s06_2), "Project1\\s06_2.xlsx")
 ```
 
+
+=============================================================
+
+#### Updated forecasts for resubmission
+
+```{r fig.height=10, fig.width=15}
+#STL using default values
+fit_s01_1 <- stl(s01_ts[,1], s.window = "periodic")
+
+#STL using default values
+fit_s01_2 <- stl(s01_ts[,2], s.window = "periodic")
+
+#STL using default values
+fit_s02_1 <- stl(s02_ts[,1], s.window = "periodic")
+
+#STL using default values
+fit_s02_2 <- stl(s02_ts[,2], s.window = "periodic")
+
+#STL using default values
+fit_s03_1 <- stl(s03_ts[,1], s.window = "periodic")
+
+#STL using default values
+fit_s03_2 <- stl(s03_ts[,2], s.window = "periodic")
+
+#STL using default values
+fit_s04_1 <- stl(s04_ts[,1], s.window = "periodic")
+
+#STL using default values
+fit_s04_2 <- stl(s04_ts[,2], s.window = "periodic")
+
+#STL using default values
+fit_s05_1 <- stl(s05_ts[,1], s.window = "periodic")
+
+#STL using default values
+fit_s05_2 <- stl(s05_ts[,2], s.window = "periodic")
+
+#STL using default values
+fit_s06_1 <- stl(s06_ts[,1], s.window = "periodic")
+
+#STL using default values
+fit_s06_2 <- stl(s06_ts[,2], s.window = "periodic")
+
+stl_s01_1 <- forecast(fit_s01_1, method = "naive", h=140)
+stl_s01_2 <- forecast(fit_s01_2, method = "naive", h=140)
+stl_s02_1 <- forecast(fit_s02_1, method = "naive", h=140)
+stl_s02_2 <- forecast(fit_s02_2, method = "naive", h=140)
+stl_s03_1 <- forecast(fit_s03_1, method = "naive", h=140)
+stl_s03_2 <- forecast(fit_s03_2, method = "naive", h=140)
+stl_s04_1 <- forecast(fit_s04_1, method = "naive", h=140)
+stl_s04_2 <- forecast(fit_s04_2, method = "naive", h=140)
+stl_s05_1 <- forecast(fit_s05_1, method = "naive", h=140)
+stl_s05_2 <- forecast(fit_s05_2, method = "naive", h=140)
+stl_s06_1 <- forecast(fit_s06_1, method = "naive", h=140)
+stl_s06_2 <- forecast(fit_s06_2, method = "naive", h=140)
+
+
+write_xlsx(as.data.frame(stl_s01_1), "Project1\\stl_s01_1.xlsx")
+write_xlsx(as.data.frame(stl_s01_2), "Project1\\stl_s01_2.xlsx")
+write_xlsx(as.data.frame(stl_s02_1), "Project1\\stl_s02_1.xlsx")
+write_xlsx(as.data.frame(stl_s02_2), "Project1\\stl_s02_2.xlsx")
+write_xlsx(as.data.frame(stl_s03_1), "Project1\\stl_s03_1.xlsx")
+write_xlsx(as.data.frame(stl_s03_2), "Project1\\stl_s03_2.xlsx")
+write_xlsx(as.data.frame(stl_s04_1), "Project1\\stl_s04_1.xlsx")
+write_xlsx(as.data.frame(stl_s04_2), "Project1\\stl_s04_2.xlsx")
+write_xlsx(as.data.frame(stl_s05_1), "Project1\\stl_s05_1.xlsx")
+write_xlsx(as.data.frame(stl_s05_2), "Project1\\stl_s05_2.xlsx")
+write_xlsx(as.data.frame(stl_s06_1), "Project1\\stl_s06_1.xlsx")
+write_xlsx(as.data.frame(stl_s06_2), "Project1\\stl_s06_2.xlsx")
+```
