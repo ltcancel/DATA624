@@ -1,0 +1,206 @@
+---
+title: "DRAFT - Project2_PyScript"
+author: "Coffy Andrews-Guo"
+date: '2022-07-12'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## DRAFT - Beverage Manufacturing Company
+
+### 1. Introduction
+
+**Predict pH**
+A simple data set from a beverage manufacturing company. The data set consists of 2571 rows/cases of data and 33 columns/variables. This analysis will p
+
+
+
+### 2. Required R Libraries / Import Python Packages 
+The ETL process will incorportate two programming languages, R and Python, and used to model predictions.
+
+```{r r-packages}
+# R packages
+suppressPackageStartupMessages(library(tidyverse))  #data transformations
+suppressPackageStartupMessages(library(reticulate)) #bridges Python and R 
+```
+
+
+```{python py-modules}
+# Python libraries/modules
+import warnings
+warnings.simplefilter(action = 'ignore', category = FutureWarning)
+warnings.filterwarnings('ignore')
+def ignore_warn(*args, **kwargs):
+  pass
+
+warnings.warn = ignore_warn #ignore annoying warning (from sklearn and seaborn)
+
+import pandas as pd  #used for handling numbers
+import numpy as np   #used for handling the dataset
+import openpyxl
+import pyreadr  #read and write R RData and Rds files into/from pandas dataframes
+import matplotlib.pyplot as plt   #create graphs
+from IPython import get_ipython  #to see the graphs in the output
+import seaborn as sns
+```
+
+
+
+### 3. Load Data
+
+```{python py-loadData, eval = False}
+pydf = pd.read_excel("StudentData - TO MODEL.xlsx")
+pydf.head()
+
+#remove the space from column name 
+pydf.columns = pydf.columns.str.replace(' ', '')
+print("\n\n", pydf)
+```
+
+
+**Writing Files - RData and Rds**
+
+Pyreadr allows you to write one single pandas data frame into a single R dataframe and store it into a RData or Rds file.
+```{python py-writeData, eval = False}
+# let's write into RData
+# df_name is the name for the dataframe in R, by default dataset
+pyreadr.write_rdata("test.RData",pydf, df_name="dataset")
+
+# now let's write a Rds
+pyreadr.write_rds("test.Rds", pydf)
+
+# done!
+```
+
+
+**Reading files (R - load/readRDS)**
+
+Checking the result in R:
+```{r r-readData, eval=FALSE}
+load("test.RData")
+head(dataset[,1:5],4) #columns 1 - 5
+
+dataset2 <- readRDS("test.Rds")
+head(dataset2[,5:10],4) #columns 5 -10
+```
+
+
+**Reading files (python::pyreadr)**
+
+Pass the path to a RData or Rds file to the function read_r. It will return a dictonary with object names as keys and pandas data frames as values
+
+For example, in order to read a RData file:
+```{python py-readRData}
+result = pyreadr.read_r('test.RData')
+
+# done! let's see what we got
+print(result.keys()) # let's check what objects we got
+df1 = result["dataset"] # extract the pandas data frame for object dataset
+```
+
+reading a Rds files have on single object, which you can access with the key None:
+```{python py-readRdsData, eval = False}
+result = pyreadr.read_r('test.Rds')
+
+# done! let's see what we got
+print(result.keys()) # let's check what objects we got: there is only None
+df2 = result[None] # extract the pandas data frame for the only object available
+```
+
+### 4. Exploratory Data Analysis (EDA)
+
+#### 4.1 Descriptive Statistics
+
+Perform descriptive analysis on original data set. The descriptive functions will provide the **mean, std** and **IQR** values. 
+
+**Perform basic analysis, we will evaluate data quality and missing missing values. https://faculty.washington.edu/otoomet/machinelearning-py/descriptive-analysis-with-pandas.html
+
+
+**View the dataset size:**
+```{python}
+df1.shape
+```
+The `.shape` attribute tells us that the dataset contains 2571 rows and 33 columns.
+
+
+**View the data rows:**
+```{python}
+# check data distribution
+df1.head()
+```
+
+```{python}
+df1.tail()
+```
+
+The `.head()` and `.tail()` attributes provides a view of the first and last lines of the data.
+
+```{python}
+df1.sample(5)
+```
+The `.sample()` attribute provides a view of random rows of the data.
+
+
+The `describe` function gives the summary of all the statistical information of the data frame (only the numerical columns).
+```{python}
+print(df1.describe())
+#add a parameter inside the describe(include='all') function to see all columns
+```
+
+<br>
+
+**Variable Names**
+```{python}
+list(df1.columns)
+```
+
+The `.columns()` attribute provides a list of variable names in the form of a special *Index* data structure that is converted to a list.
+
+<br>
+
+**Data Type**
+```{python}
+#information about the data columns
+ df1.info()
+```
+The data types tells that only *Brand Code* is an "object", meaning it is a string. The other data types are "float64" or decimal floating point number.
+
+
+
+
+
+#### 4.2 Filtering Data
+
+*Missing Values - Categorical Variable*
+```{python}
+df1[['BrandCode']] = df1[["BrandCode"]].fillna("Z") #replace NaN values with string in specific column
+```
+
+*Grouped by Brand Code*
+```{python}
+g = df1.groupby('BrandCode').sum()
+g.round(3)
+```
+
+*Grouped PH values by Brand Code*
+```{python}
+g1 = df1.groupby('BrandCode')['PH'].sum()
+g1
+```
+
+**View Variables Statistics**
+```{python}
+np.around(df1.describe(), decimals = 3)
+```
+
+```{python}
+df1.skew().round(3)  #pandas 
+```
+
+```{python}
+print("\nThe maximum skew value of the data frame ", df1.skew().max().round(3))
+print("\n\nThe minimum skew value of the data frame", df1.skew().min().round(3))
+```
