@@ -57,9 +57,7 @@ library(tibble)
 
 *A chemical manufacturing process for a pharmaceutical product was discussed in Sec. 1.4. In this problem, the objective is to understand the relationship between biological measurements of the raw materials (predictors), measurements of the manufacturing process (predictors), and the response of product yield. Biological predictors cannot be changed but can be used to assess the quality of the raw material before processing. On the other hand, manufacturing process predictors can be changed in the manufacturing process. Improving product yield by 1% will boost revenue by approximately one hundred thousand dollars per batch ($100,000/batch):*
 
-### (a) 
-
-*Start R and use these commands to load the data:*
+### a. Start R and use these commands to load the data:
 
 *The matrix `processPredictors` contains the 57 predictors (12 describing the input of biological material and 45 describing the process predictors) for the 176 manufacturing runs. `yield` contains the percent yield for each run.*
 
@@ -69,12 +67,11 @@ data(ChemicalManufacturingProcess)
 df_raw <- ChemicalManufacturingProcess
 ```
 
-### b. 
+### b. A small percentage of cells in the predictor set contain missing values. Use the imputation function to fill in these missing values (e.g., see Sec. 3.8).
 
-*A small percentage of cells in the predictor set contain missing values. Use the imputation function to fill in these missing values (e.g., see Sec. 3.8).*
+For the imputation, the `caret` package's `preProcess()` function is used. From the chart before imputation, the missing values are entirely part of the manufacturing category of variables. The median is used for the imputation. 
 
 ```{r}
-summary(df_raw)
 paste0("Missing Values: ",sum(is.na(ChemicalManufacturingProcess)))
 ```
 
@@ -91,11 +88,11 @@ df <- predict(preProcess_NAdata_model, newdata = df_raw)
 paste0(sum(is.na(df))," values missing after imputation")
 ```
 
-### c.
-
-*Split the data into a training and test set, pre-process the data, and tune a model of your choice from this chapter. What is the optimal value of the performance metric?*  
+### c. Split the data into a training and test set, pre-process the data, and tune a model of your choice from this chapter. What is the optimal value of the performance metric?
 
 **Code References: https://topepo.github.io/caret/pre-processing.html#the-preprocess-function** 
+
+Continuing with the `caret` package, the `createDataPartition()` function will allow the data set to be split into a training and test set including a parameter for the ratio of training and test data.
 
 #### Splitting data in to training and test set
 
@@ -115,13 +112,12 @@ testData <- df[-trainRowNumbers,]
 
 #### Data preprocess
 
+The `preProcess` function is a useful Swiss army knife tool for a number of preprocessing steps, including centering and scaling the dataset is one line of code. 
 ```{r}
 preProcValues <- preProcess(trainData, method = c("center", "scale"))
 
 trainTransformed <- predict(preProcValues, trainData)
 testTransformed <- predict(preProcValues, testData)
-
-trainTransformed
 
 xTrain <- trainTransformed %>% dplyr::select(-Yield)
 
@@ -135,6 +131,8 @@ yTest  <- testTransformed %>% dplyr::select(Yield)
 
 #### Tune model
 
+In `caret`'s `train()` function the `trControl()` function and arguments are used to tune the model. In this case cross validation with five folds are indicated.
+
 ```{r warning=FALSE}
 lm_model <- train(xTrain, yTrain$Yield, method="lm", trControl=trainControl(method="repeatedcv",repeats=5) )
 lm_model
@@ -146,13 +144,11 @@ summary(lm_model)
 plot(lm_model$finalModel)
 ```
 
-### d. 
+### d. Predict the response for the test set. What is the value of the performance metric and how does this compare with the resampled performance metric of the training set?
 
 **Resampling examples from Sect. 4.9 of the text.**
 
-*Predict the response for the test set. What is the value of the performance metric and how does this compare with the resampled performance metric of the training set?*
-
-Predict using the test data set and get the model's performance values
+Predictions are made using the test data set and below is the table with the models' performance values. The resampled performance metric of the test set is much better than that of the training data set. The RMSE for the test set is smaller than that of the training one.
 
 ```{r}
 finalLMPred <- predict(lm_model$finalModel, newdata = xTest)
@@ -161,19 +157,15 @@ finalLMPred <- predict(lm_model$finalModel, newdata = xTest)
 postResample(pred = finalLMPred, obs = yTest$Yield)
 ```
 
-As it can be seen in the table below, the resampled performance metrix of the test set is much better than that of the training data set. The RMSE for the test set is smaller than that of the training one.
-
 
 Model                   |      RMSE  |  Rsquared |       MAE
 ------------------------|------------|-----------|----------
 Linear Model (Training) |  1.7617940 | 0.4240885 | 0.9535992 
 Linear Model (Test)     |  1.2731407 | 0.1443080 | 0.7636275
 
-### e.
+### e. Which predictors are the most important in the model you have trained? Do either the biological or process predictors dominate the list?
 
-*Which predictors are the most important in the model you have trained? Do either the biological or process predictors dominate the list?*
-
-Below is a list of the top 10 most important predictors for the Linear Regression model.
+Below is a list of the top 10 most important predictors for the Linear Regression model. The manugacturing process predictors are dominate in this list, with only two biological factors appearing.
 
 ```{r}
 plot(caret::varImp(lm_model), top = 10)
@@ -181,9 +173,25 @@ plot(caret::varImp(lm_model), top = 10)
 caret::varImp(lm_model, scale = FALSE)
 ```
 
-### f. 
+### f. Explore the relationships between each of the top predictors and the response. How could this information be helpful in improving yield in the future runs of the manufacturing process?
 
-*Explore the relationships between each of the top predictors and the response. How could this information be helpful in improving yield in the future runs of the manufacturing process?*
+We use scatter plots between the top 10 predictors of the model and the response variable.
+
+Some conclusions:
+
+* The 2 biological predictors `BiologicalMaterial05` and `BiologicalMaterial11` appear to have a low positive correlation to the response.
+
+* The top 2 predictors appears to be `ManufacturingProcess32` and `ManufacturingProcess33`. Which, appear to have a positive correlation with the response.
+
+* The predictors `ManufacturingProcess04` and `ManufacturingProcess13` seem to have a negative correlation with the response.
+
+* The predictor `ManufacturingProcess37` seems to have a low negative correlation with the response.
+
+* The remaining predictors `ManufacturingProcess07`, `ManufacturingProcess16` and `ManufacturingProcess28` seem to have no correlation to the response.
+
+
+Since the biological factors are immutable in terms of yield, there may not be much one can do other than maximizing the stock of product to have the desired biological factors that would produce the higher yield, (e.g., high quality oil with fewer impurities). The manufacturing processes are more controllable. By observing where certain manufacturing processes produce higher yields, the factory may be able to create the right environment to extract more product from the manufacturing processes by maintaining high yield conditions. There is likely some interaction among these variables that may maximize one while diminishing another. Those should be considered individually and analyzed to produce highest *overall* yield, rather than highest yield within each variable.
+
 
 ```{r}
 library(gridExtra)
@@ -253,19 +261,6 @@ grid.arrange(plt01, plt02, plt03, plt04, plt05, plt06, plt08, plt09,
 <br>
 <br>
 
-We use scatter plots between the top 10 predictors of the model and the response variable.
-
-The conclusion is:
-
-* The 2 biological predictors `BiologicalMaterial05` and `BiologicalMaterial11` appear to have a low positive correlation to the response.
-
-* The top 2 predictors appears to be `ManufacturingProcess32` and `ManufacturingProcess33`. Which, appear to have a positive correlation with the response.
-
-* The predictors `ManufacturingProcess04` and `ManufacturingProcess13` seem to have a negative correlation with the response.
-
-* The predictor `ManufacturingProcess37` seems to have a low negative correlation with the response.
-
-* The remaining predictors `ManufacturingProcess07`, `ManufacturingProcess16` and `ManufacturingProcess28` seem to have no correlation to the response.
 
 \newpage
 
@@ -273,15 +268,11 @@ The conclusion is:
 
 ## KJ 7.2
 
-`Friedman (1991)` introduced several benchmark data sets create by simulation. 
+**`Friedman (1991)` introduced several benchmark data sets create by simulation. One of these simulations used the following nonlinear equation to create data:**
 
-One of these simulations used the following nonlinear equation to create data:
+$$y = 10 sin(\pi x_1 x_) + 20(x_3 − 0.5)^2 + 10x_4 + 5x_5 + N(0, \sigma^2)$$
 
-$y = 10 sin(\pi x_1 x_) + 20(x_3 − 0.5)^2 + 10x_4 + 5x_5 + N(0, \sigma^2)$
-
-where the x values are random variables uniformly distributed between [0, 1] (there are also 5 other non-informative variables also created in the simulation).
-
-The package `mlbench` contains a function called `mlbench.friedman1` that simulates these data:
+**where the x values are random variables uniformly distributed between [0, 1] (there are also 5 other non-informative variables also created in the simulation). The package `mlbench` contains a function called `mlbench.friedman1` that simulates these data:**
 
 ```{r}
 library(caret)
@@ -299,13 +290,13 @@ caret::featurePlot(trainingData$x, trainingData$y)
 ## This creates a list with a vector 'y' and a matrix
 ## of predictors 'x'. Also simulate a large test set to
 ## estimate the true error rate with good precision:
-testData <- mlbench.friedman1(5000, sd = 1)
-testData$x <- data.frame(testData$x)
+testingData <- mlbench.friedman1(5000, sd = 1)
+testingData$x <- data.frame(testingData$x)
 
 
 ```
   
-Tune several models on these data. For example:
+**Tune several models on these data. For example:**
 
 ```{r}
 
@@ -322,10 +313,10 @@ knnModel
 
 
 ```{r}
-knnPred <- predict(knnModel, newdata = testData$x)
+knnPred <- predict(knnModel, newdata = testingData$x)
 ## The function 'postResample' can be used to get the test set
 ## perforamnce values
-postResample(pred = knnPred, obs = testData$y)
+postResample(pred = knnPred, obs = testingData$y)
 ```
 
 **Which models appear to give the best performance? Does MARS select the informative predictors (those named X1–X5)?**
@@ -376,13 +367,13 @@ nnetTune <- train(trainingData$x, trainingData$y,
 nnetTune
 ```
 
-Predict using the test data set and get the model's performance values
+Predict using the test data set and get the model's performance values.
 
 ```{r}
-nnetPred <- predict(nnetTune, newdata = testData$x)
+nnetPred <- predict(nnetTune, newdata = testingData$x)
 ## The function 'postResample' can be used to get the test set
 ## performance values
-postResample(pred = nnetPred, obs = testData$y)
+postResample(pred = nnetPred, obs = testingData$y)
 ```
 
 <br>
@@ -424,26 +415,26 @@ tuned_mars
 
 ```
 
-Plot the MARS model results
+Plot the MARS model results.
 
 ```{r}
 ggplot(tuned_mars)
 ```
 
-Show the best tuned MARS model
+Show the best tuned MARS model.
 
 ```{r}
 # best chosen MARS model
 tuned_mars$bestTune
 ```
 
-Predict using the test data set and get the model's performance values
+Predict using the test data set and get the model's performance values.
 
 ```{r}
-marsPred <- predict(tuned_mars, newdata = testData$x)
+marsPred <- predict(tuned_mars, newdata = testingData$x)
 ## The function 'postResample' can be used to get the test set
 ## performance values
-postResample(pred = marsPred, obs = testData$y)
+postResample(pred = marsPred, obs = testingData$y)
 ```
 
 <br>
@@ -476,20 +467,20 @@ svmRTuned
 ```
 
 
-Predict using the test data set and get the model's performance values
+Predict using the test data set and get the model's performance values.
 
 ```{r}
-svmPred <- predict(svmRTuned, newdata = testData$x)
+svmPred <- predict(svmRTuned, newdata = testingData$x)
 ## The function 'postResample' can be used to get the test set
 ## performance values
-postResample(pred = svmPred, obs = testData$y)
+postResample(pred = svmPred, obs = testingData$y)
 ```
 
 
 
 **Which models appear to give the best performance? Does MARS select the informative predictors (those named X1–X5)?**
 
-Comparing all used models we can see that the **MARS** model yields the best performance in terms of the lowest **RMSE = 1.2803060**.
+Comparing all used models we can see that the **MARS** model yields the best performance in terms of the lowest **RMSE = 1.2803060** and highest $R^2$.
 
 
 Model                   |      RMSE  |  Rsquared |       MAE
@@ -508,7 +499,7 @@ SVM                     |  2.0793977 | 0.8249453 | 1.5796370
 **Exercise 6.3 describes data for a chemical manufacturing process. Use the same data imputation, data splitting, and pre-processing steps as before and train several nonlinear regression models.**
 
 
-Load libraries used for Exercise 6.3
+Load libraries used for Exercise 6.3. The same variables will be used in 7.5 as in 6.3 because all the imputation and splits must be identical. 
 
 ```{r}
 library(RANN)
@@ -517,71 +508,6 @@ library(naniar)
 library(caret)
 ```
 
-#### Load the data
-
-```{r}
-library(AppliedPredictiveModeling)
-data(ChemicalManufacturingProcess)
-df_raw <- ChemicalManufacturingProcess
-```
-
-#### Perform imputation of missing values
-
-```{r}
-# check variables for missing values
-# gg_miss_var(df_raw)
-```
-
-```{r}
-preProcess_impute <- preProcess(df_raw, method ="knnImpute")
-df <- predict(preProcess_impute, newdata = df_raw)
-```
-
-```{r}
-# check variables for missing values
-# gg_miss_var(df)
-```
-
-#### Remove near zero variance predictors
-
-Predictors that have one unique value (i.e. are zero variance predictors) or predictors that are have both of the following characteristics: they have very few unique values relative to the number of samples and the ratio of the frequency of the most common value to the frequency of the second most common value is large. 
-
-```{r}
-
-df <- df %>% select(!caret::nearZeroVar(.))
-
-```
-
-
-
-#### Splitting data in to training and test set
-
-```{r}
-# Create the training and test datasets
-set.seed(100)
-# Step 1: Get row numbers for the training data
-trainRowNumbers <- createDataPartition(df$Yield, p=0.8, list=FALSE)
-# Step 2: Create the training  dataset
-trainData <- df[trainRowNumbers,]
-# Step 3: Create the test dataset
-testData <- df[-trainRowNumbers,]
-```
-
-#### Data preprocess applying centering and scaling
-
-```{r}
-preProcValues    <- preProcess(trainData, method = c("center", "scale"))
-trainTransformed <- predict(preProcValues, trainData)
-testTransformed  <- predict(preProcValues, testData)
-
-xTrain <- trainTransformed %>% select(-Yield)
-yTrain <- trainTransformed %>% select(Yield)
-
-xTest  <- testTransformed %>% select(-Yield)
-yTest  <- testTransformed %>% select(Yield)
-```
-
-<br>
 
 #### Fit a KNN model
 
@@ -764,15 +690,15 @@ postResample(pred = svmChemPred, obs = yTest$Yield)
 ### a. Which nonlinear regression model gives the optimal resampling and test set performance?
 
 
-Comparing all used models we can see that the **Neural Network (avNNet)** model yields the best performance in terms of the lowest RMSE = 0.5594510.
+Comparing all used models we can see that the **Neural Network (avNNet)** model yields the best performance in terms of the lowest RMSE = 0.5971.
 
 
 Model                   |      RMSE  |  Rsquared |       MAE
 ------------------------|------------|-----------|----------
-KNN                     |  0.6501442 | 0.4623051 | 0.5205731 
-Neural Network (avNNet) |  **0.5594510** | 0.6676931 | 0.4589402
-MARS                    |  0.5754156 | 0.6002260 | 0.4630585
-SVM                     |  0.5682649 | 0.5880968 | 0.4506714 
+KNN                     |  0.6525019 | 0.4576898 | 0.5469477 
+Neural Network (avNNet) |  **0.5971097* | 0.6827372 | 0.4650641
+MARS                    |  0.7590228 | 0.2965229 | 0.6104158
+SVM                     |  0.5588608 | 0.5977766 | 0.4423128 
 
 
 <br>
@@ -781,7 +707,7 @@ SVM                     |  0.5682649 | 0.5880968 | 0.4506714
 ### b. Which predictors are most important in the optimal nonlinear regression model? Do either the biological or process variables dominate the list? How do the top ten important predictors compare to the top ten predictors from the optimal linear model?
 
 
-* The **Neural Network (avNNet)** model yields the best performance in terms of the lowest RMSE = 0.5594510. For such model, below are the predictors in order of importance. A plot of them is also provided.
+* The **Neural Network (avNNet)** model yields the best performance in terms of the lowest RMSE. For that model, below are the predictors in order of importance. A plot of them is also provided.
 
 * The comparison of the top ten most important predictor between the NNET model and the Linear Model shows that the most important predictor is the `"ManufacturingProcess32"`. The rest of the predictors are ranked differently between the 2 models. The NNET model captured only one biological predictor `"BiologicalMaterial11"` in the top 10 list. While the Linear Model ranked 4 biological predictors in the top 10.
 
@@ -882,7 +808,7 @@ grid.arrange(plt01, plt03, plt05, plt07, plt09,
 
 We use scatter plots between the top predictors and the response for the TOP 9 predictors that are unique to the optimal nonlinear regression model.
 
-The conclusion is:
+Some conclusions:
 
 * All four Biological predictors (`BiologicalMaterial02`, `BiologicalMaterial36`, `BiologicalMaterial06`, `BiologicalMaterial12`) appear to have low positive correlation to the response variable.
 
@@ -923,9 +849,9 @@ rfImp1
 rfImp1[order(-rfImp1$Overall),]
 ```
 
-Did the random forest model significantly use the uninformative predictors (V6-V10)?
+**Did the random forest model significantly use the uninformative predictors (V6-V10)?**
 
-Looking at the table above, the importance scores for the predictors indicate the model relies heavily upon V1, V4, V2, and V5 respectively, unlike predictors V3 and V6-V10 not having much importance to the model
+Looking at the table above, the importance scores for the predictors indicate the model relies heavily upon V1, V4, V2, and V5 respectively, unlike predictors V3 and V6-V10 not having much importance to the model.
 
 ```{r}
 # Visualization for original models' scores
@@ -940,9 +866,6 @@ rfImp1 %>%
 ```
 
 ### b. Now add an additional predictor that is highly correlated with one of the informative predictors. For example:
-
-<<<<<<< Updated upstream
-### b. Now add an additional predictor that is highly correlated with one of the informative predictors. For example:
 =======
 ```{r}
 # From book
@@ -951,7 +874,7 @@ simulated$duplicate1 <- simulated$V1 + rnorm(200) * .1
 cor(simulated$duplicate1, simulated$V1)
 ```
 
-Fit another random forest model to these data. Did the importance score for $V1$ change? What happens when you add another predictor that is also highly correlated with $V1$?
+**Fit another random forest model to these data. Did the importance score for $V1$ change? What happens when you add another predictor that is also highly correlated with $V1$?**
 
 Looking at the dataframe below, the importance of V1 decreased when a new V1-correlated predictor was introduced. V4, V2, V1, the New Variable, and V5  respectively are all the most important predictors from this random forest model. Compared to the last model, these top predictors bear a similar importance and order.
 
@@ -1078,14 +1001,13 @@ cbImp2$Variable <- factor(rownames(cbImp2), levels = Prednames)
 cbImp2[order(-cbImp2$Variable),]
 ```
 
->>>>>>> Stashed changes
 \newpage
 
 ## KJ 8.2 (Regression Trees and Rule-Based Models)
  
 **Use a simulation to show tree bias with different granularities.**
 
-Looking at the plots below, we can see the relationship between the predictor and response. The predictor, X1, is a binomial random variable (1,2) of 450 observations which are used to create homogeneous responses according to the predictor. X2 on the other hand, which is comprised of 450 observations as well, is much more random, unrelated to the response, and therefore considered "granular". *Would like to add more commentary to this idea of granularity and what the author means*
+Looking at the plots below, we can see the relationship between the predictor and response. The predictor, X1, is a binomial random variable (1,2) of 450 observations which are used to create homogeneous responses according to the predictor. X2 on the other hand, which is comprised of 450 observations as well, is much more random, unrelated to the response, and therefore considered "granular".
 
 ```{r, warning = FALSE}
 set.seed(222)
@@ -1118,17 +1040,13 @@ plot(simulated_data$Y ~ simulated_data$X1 + simulated_data$X2)
 
 **In stochastic gradient boosting the bagging fraction and learning rate will govern the construction of the trees as they are guided by the gradient. Although the optimal values of these parameters should be obtained through the tuning process, it is helpful to understand how the magnitudes of these parameters affect magnitudes of variable importance. Figure 8.24 provides the variable importance plots for boosting using two extreme values for the bagging fraction (0.1 and 0.9) and the learning rate (0.1 and 0.9) for the solubility data. The left-hand plot has both parameters set to 0.1, and the right-hand plot has both set to 0.9:**
 
-### a. 
-
-**Why does the model on the right focus its importance on just the first few of predictors, whereas the model on the left spreads importance across more predictors?**
+### a. Why does the model on the right focus its importance on just the first few of predictors, whereas the model on the left spreads importance across more predictors?
 
 The learning rate referenced in the questions prompt is also called "regularization" or "shrinkage" and is a means to limit the "greedy" nature of boosting. From page 206 of our KJ text, "Friedman recognized that his gradient boosting machine could be susceptible to over-fitting, since the learner employed...is tasked with optimally fitting the gradient.
 
 The lower the learning rate the less shrinkage there is and the lower the change in predicted model from previous boosting iterations. As the learning parameter is increased the model will "learn" quicker and perhaps be more prone to overfit and overvalue fewer variables of importance. 
 
-### b. 
-
-**Which model do you think would be more predictive of other samples?**
+### b. Which model do you think would be more predictive of other samples?
 
 Because gradiant boosting may overfit more readily with a higher learning parameter, the model on the *left* would likely be more predictive of other samples.
 
@@ -1144,14 +1062,11 @@ As more variables are incorporated as the interaction depth increases, the slope
 
 **Refer to Exercises 6.3 and 7.5 which describe a chemical manufacturing process. Use the same data imputation, data splitting, and pre-processing steps as before and train several tree-based models**
 
-### a. 
-
-**Which tree-based regression model gives the optimal resampling and test set performance?**
+### a. Which tree-based regression model gives the optimal resampling and test set performance?
 
 #### Single Tree
 ```{r}
 library(rpart)
-library(partykit)
 
 rpartTree <- rpart(Yield ~., data = trainData)
 ```
@@ -1189,9 +1104,7 @@ Cubist                  |       0.50 |      0.72 |      0.37
 
 Based on the results in the above table, the cubist model performs best with the test data set.
 
-### b. 
-
-**Which predictors are most important in the optimal tree-based regression model? Do either the biological or process variables dominate the list? How do the top 10 important predictors compare to the top 10 predictors from the optimal linear and nonlinear models?**
+### b. Which predictors are most important in the optimal tree-based regression model? Do either the biological or process variables dominate the list? How do the top 10 important predictors compare to the top 10 predictors from the optimal linear and nonlinear models?
 
 Compared to the linear and nonlinear counterparts, the most important factors are a balance between biological and manufacturing variables. All three chose `ManufacturingProcess32` as the most important variable.
 
@@ -1214,9 +1127,7 @@ plot(caret::varImp(nnetChemTune), top = 10)
 caret::varImp(nnetChemTune)
 ```
 
-### c. 
-
-**Plot the optimal single tree with the distribution of yield in the terminal nodes. Does this view of the data provide additional knowledge about the biological or process predictors and their relationship with yield?**
+### c. Plot the optimal single tree with the distribution of yield in the terminal nodes. Does this view of the data provide additional knowledge about the biological or process predictors and their relationship with yield?
 
 This view does provide some additional information related to the biological and process predictors. Manufacturing predictors are more prevalent with other manufacturing indicators and the same appears to be true for biological ones. The tree has a balance between bio and manufacturing variables. It also parses one of the most important features of the three approaches and how other factors weigh into `ManufacturingProcess32`.
 
@@ -1226,14 +1137,11 @@ rpart.plot(rpartTree)
 ```
 
 
-
 \newpage
 
 # Week 6
 
 ## HW BATCH #2 - Market Basket Analysis / Recommender Systems (a simple problem)
-
-**I am assigning one simple problem on market basket analysis / recommender systems.**
 
 **Imagine 10000 receipts sitting on your table. Each receipt represents a transcation with items that were purchased. The receipt is a representation of stuff that went into a customer's basket - and therefore 'Market Basket Analysis'.**
 
@@ -1258,8 +1166,6 @@ The database contains customer transactions, 1000 receipts, that will be analyze
 
 For example, information can be extracted on consumer behavior like *If someone buys coffee and creamer, then is likely to buy cookies with high probability".
 
-
-
 ### 2. Required Libraries (Python and RMarkdown)
 
 Load some libraries and import data.
@@ -1272,14 +1178,12 @@ require(RColorBrewer) # graphics color
 library(reticulate)   # R interface to Python
 ```
 
-
 ```{r eval=FALSE}
 #Installing Python Packages 
 py_install("pandas")
 py_install("mlxtend")
 py_install("seaborn")
 ```
-
 
 ### 3. Load Dataset (Python) 
 
@@ -1292,20 +1196,17 @@ groc = pd.read_csv("GroceryDataSet.csv", header=None)
 print("\nReading the CSV file (without header)...\n", groc.head(10))
 ```
 
-
 With the python function, `pandas:shape method`, view a tuple representing the dimensions of a object:
 ```{python}
 groc.shape
 ```
 ... has 9835 observations (rows) recorded for 32 (columns) variables.
 
-
 View the data frame summary information in R (add `py$` to the variable).
 ```{r message=FALSE, warning=FALSE}
 #Explore the data structure with an R function
 skimr::skim_without_charts(py$groc)
 ```
-
 
 ### 4. Convert to a Transactional Dataset - Market Basket Analysis using R
 
@@ -1315,12 +1216,10 @@ Convert data frame to a class `transactions` for perform association mining as f
 grocery <- read.transactions("GroceryDataSet.csv", sep = ",", rm.duplicates = TRUE)
 ```
 
-
 #### 4.1 Transaction object
 ```{r}
 grocery
 ```
-
 
 #### 4.2 Summary 
 ```{r}
@@ -1351,13 +1250,11 @@ Independent transactions expressed as a whole number ...
 itemFrequencyPlot(grocery,topN=20,type="absolute",col=brewer.pal(7,'Greens'),space=(0.5),width=(0.5),xlab="Item Name",ylab="Item Frequency(absolute)",main="Absolute Item Frequency Plot")
 ```
 
-
 The amount of times an item/transaction have appeared as compared to others, expressed as a percentage ...
 ```{r}
 #Again checking top 20 items sold in the given dataset with type=relative
 itemFrequencyPlot(grocery,topN=20,type="relative",col=brewer.pal(8,'Spectral'),space=(0.5),width=(0.5),xlab="Item Name",ylab="Frequency(relative)",main="Relative Item Frequency Plot")
 ```
-
 
 *Observation:* Whole milk is the best selling product, followed by other vegetables. 
 
@@ -1382,7 +1279,6 @@ In the analysts, association rules is a data mining measures to compare the rela
 
 *Lift* - refers to the likelihood that a customer will purchase the first and second item together in a set. 
 
-
 #### 6.1 Training the algorithm
 
 Train the selected algorithm (Apriori)
@@ -1391,16 +1287,13 @@ Train the selected algorithm (Apriori)
 rules <- apriori(data=grocery,parameter=list(support=0.001,confidence=0.9, minlen= 2, maxlen=10, target = "rules"))
 ```
 
-
 The `association rules` metrics settings will find frequent itemsets that satisfies `0.1% Support, 90% Confidence, and Maximum of number of items at 10`.
 
 The total number of rules is 129, with a minimum purchase of 2 item and maximum is 10.
 
-
 ```{r}
 summary(rules) # This gives set of rules generated here it is 129, number of transactions, support and confidence values that we have given in previous code
 ```
-
 
 `Summary (rules)` shows the following:
 
@@ -1421,14 +1314,12 @@ options(digits = 2)
 inspect(rules[1:10])
 ```
 
-
 *Convert rules into data frame*
 ```{r eval=FALSE}
 rules2 <- rules
 rules3 <- as(rules2, "data.frame")
 write.csv(rules3, file = "D:/CUNY SPS/2022 Summer Course/DATA624/rules.csv", sep=",")
 ```
-
 
 *Inspect the top 10 rules sorted by lift:*
 
@@ -1442,7 +1333,6 @@ inspect(sort(rules, by="lift", decreasing=TRUE)[1:10])
 # show the support, lift and confidence for the first 10 rules
 ```
 
-
 *Lift Interpretation:* A rule with a lift count (`see rules_lift` above) imply that, the items in LHS and RHS are `n times` more likely to be purchased together compared to the purchases when they are assumed to be unrelated. For example, **{liquor, red/blush wine} paired with {bottled beer}** has a high support and confidence threshold as a bundled transactional sale. 
 
 **Interpretation of Rules sorted by LIFT**
@@ -1450,7 +1340,6 @@ inspect(sort(rules, by="lift", decreasing=TRUE)[1:10])
 * 100% of the customers who purchased `brown bread, pip fruit, whipped/sour cream (lhs)` also purchased `other vegetables (rhs)` is `5 times` more likely to purchase the itemset as a bundle sale.
 
 <br> 
-
 
 *Inspect the top 10 rules sorted by confidence:*
 
@@ -1463,7 +1352,6 @@ inspect(sort(rules, by="confidence", decreasing=TRUE)[1:10])
 #`high-confidence' rules
 # show the support, lift and confidence for the first 10 rules
 ```
-
 
 *Confidence Interpretation:* The rules with confidence of 1 (`see rules_conf` above) imply that, whenever the LHS item is purchased, the RHS item was purchased 100% of the time. Popular items that are derive from this analysis are: **{rice, sugar} with {whole milk}** and **{canned fish, hygiene articles} with {whole milk}**.
 
@@ -1804,7 +1692,7 @@ print(py_apriori)
 
 ### 8. Conclusion
 
-The Market Basket Analysis used the `Apriori Algorithm` to perform `Association Rule` based on two programming languages `R and Python`. The comparison was performed in `RStudio` operating system, and Python `reticulate package` was loaded to use within R session. 
+The Market Basket Analysis used the `Apriori Algorithm` to perform `Association Rule` based on two programming languages `R and Python`. The comparison was performed in `RStudio` operating system, and Python `reticulate package` was loaded to use within R session. There was some setup required in order to use Python in the RStudio IDE. Packages needed to be installed in a certain way and rechecked in the environment. One can accomplish this in the "R-reticulate" environment in Anaconda and using pip install. 
 
 The sample transaction data set provided these insights based on the programming languages:
 
@@ -1844,20 +1732,8 @@ head(py_apriori[order(-py_apriori$lift), ], 5)
 
 In RStudio, using Python visualizations packages, `matplotlib and Seaborn`, are cumbersome for in-experience Python users. The data visualization with a Python script require plug-ins for inline plots and require additional help aids to successful install.  
 
-
-
-
 ### 9. References:
 
 * Bhalla, D. (2015). Market Basket Analysis with R. ListenData. https://www.listendata.com/2015/12/market-basket-analysis-with-r.html
 
 * Abbas, M. M. (2022, May 6). Python Apriori Algorithm. Delft Stack. https://www.delftstack.com/howto/python/apriori-algorithm-python/#:%7E:text=%20Apriori%20Algorithm%20in%20Python%20%201%20Our,2%20until%20the%20specified%20k%20is. . .%20More%20
-
-
-
-
-
-
-
-
-

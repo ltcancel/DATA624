@@ -1,0 +1,42 @@
+---
+title: "Data624 - Project 2"
+author: "Esteban Aramayo, Coffy Andrews-Guo, LeTicia Cancel, Joseph Connolly, Ian Costello"
+date: '7/16/2022'
+output: 
+  word_document:
+    toc: yes
+    toc_depth: '2'
+  html_document:
+    toc: yes
+    toc_float: yes
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE,
+                      message=FALSE,
+                      collapse = FALSE,
+                      comment = "#>" )
+```
+
+```{r echo=FALSE}
+# install from CRAN
+#install.packages("officedown")
+
+# or GitHub
+#remotes::install_github("davidgohel/officedown")
+```
+
+```{r warning=FALSE, message=FALSE}
+library(readxl)
+library(tidyverse)
+library(ggplot2)
+library(patchwork)
+library(fpp2)
+library(caret)
+library(RANN)
+library(VIM)
+library(ggpubr)
+library(gridExtra)
+library(forecast)
+```
