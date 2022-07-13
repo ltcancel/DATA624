@@ -10,6 +10,7 @@ output:
     toc: yes
     toc_float: yes
     toc_depth: 2
+  always_allow_html: true
 ---
 
 ```{r global-options, include=FALSE}
@@ -22,6 +23,13 @@ knitr::opts_chunk$set(echo=TRUE, warning=FALSE,
 # Libraries
 
 Loading in the libraries referenced in Sect. 6.5.
+
+
+```{r}
+library(webshot)
+install_phantomjs(force = TRUE)
+```
+
 
 ```{r}
 library(elasticnet)
@@ -1501,13 +1509,13 @@ top10subRules <- head(subRules, n = 10, by = "lift")
 
 
 ```{r}
-plot(top10subRules, method = "graph",  engine = "htmlwidget")
+ #plot(top10subRules, method = "graph",  engine = "htmlwidget")
 ```
 
 
 ```{r}
 #export/save as a Graphviz dot-file
-saveAsGraph(head(subRules, n = 10, by = "lift"), file = "rules.graphml")
+#saveAsGraph(head(subRules, n = 10, by = "lift"), file = "rules.graphml")
 ```
 
 
@@ -1616,10 +1624,7 @@ fig = px.treemap(df_table.head(10), path=["items", 'incident_count', '10'], valu
                   color=df_table["incident_count"].head(10), hover_data=['items'],
                   color_continuous_scale='Blues',
                 )
-# ploting the treemap - see saved file "newplot.png"
-plt.imshow(fig)
-plt.show()
-#fig.show()
+
 ```
 
 <center>
@@ -1627,13 +1632,6 @@ plt.show()
 
 </center>
 
-
-
-```{python}
-pt = plt.hist(x="items", data=df, nbins = 60)
-plt.imshow()
-plt.show(pt)
-```
 
 #### 7.6 Converting Data Set to a Transaction Object
 

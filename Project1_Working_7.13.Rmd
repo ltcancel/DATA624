@@ -1,0 +1,364 @@
+---
+title: "Data624 - Project 1"
+author: "Esteban Aramayo, Coffy Andrews-Guo, LeTicia Cancel, Joseph Connolly, Ian Costello"
+date: '6/26/2022'
+output: 
+  word_document:
+    toc: yes
+    toc_depth: '2'
+  html_document:
+    toc: yes
+    toc_float: yes
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE,
+                      message=FALSE,
+                      collapse = FALSE,
+                      comment = "#>" )
+```
+
+```{r warning=FALSE, message=FALSE}
+library(readxl)
+library(tidyverse)
+library(ggplot2)
+library(patchwork)
+library(fpp2)
+library(caret)
+library(RANN)
+library(VIM)
+library(ggpubr)
+library(gridExtra)
+library(forecast)
+library(mice)
+library(TSstudio)
+library(writexl)
+```
+
+```{r}
+df <- read_excel("data.xls")
+```
+
+```{r}
+df1 <- df %>%
+  filter(category == 'S01') %>%
+  dplyr::select(SeriesInd, Var01, Var02)
+
+summary(df1)
+```
+
+```{r}
+df1_imp <- mice(df1, method = "cart")
+df1 <- complete(df1_imp)
+```
+
+
+```{r}
+head(df1)
+```
+
+
+```{r}
+p1 <- df1 %>% ggplot(aes(x=SeriesInd, y= Var01)) + geom_line(color='blue')
+
+p2 <- df1 %>% ggplot(aes(x=SeriesInd, y= Var02)) + geom_line(color='blue')
+
+ggarrange(p1, p2, nrow=2)
+```
+
+```{r}
+a_s01_1 <- auto.arima(df1[,2])
+f_s01_1 <- forecast(a_s01_1, h= 140)
+autoplot(f_s01_1)
+```
+
+```{r}
+a_s01_2 <- auto.arima(df1[,3])
+f_s01_2 <- forecast(a_s01_2, h= 140)
+autoplot(f_s01_2)
+```
+
+
+```{r}
+# export all predictions to excel
+write_xlsx(as.data.frame(f_s01_1), "Project1\\s01_1.xlsx")
+write_xlsx(as.data.frame(f_s01_2), "Project1\\s01_2.xlsx")
+```
+
+## s02
+
+```{r}
+df2 <- df %>%
+  filter(category == 'S02') %>%
+  dplyr::select(SeriesInd, Var02, Var03)
+
+summary(df2)
+```
+
+```{r}
+df2_imp <- mice(df2, method = "cart")
+df2 <- complete(df2_imp)
+```
+
+
+```{r}
+head(df2)
+```
+
+
+```{r}
+p1 <- df2 %>% ggplot(aes(x=SeriesInd, y= Var02)) + geom_line(color='blue')
+
+p2 <- df2 %>% ggplot(aes(x=SeriesInd, y= Var03)) + geom_line(color='blue')
+
+ggarrange(p1, p2, nrow=2)
+```
+
+```{r}
+outlier <- (which.max(df2$Var03))
+df2$Var03[outlier] <- (df2$Var03[outlier-1] + df2$Var03[outlier+1])/2
+```
+
+
+```{r}
+a_s02_1 <- auto.arima(df2[,2])
+f_s02_1 <- forecast(a_s02_1, h= 140)
+autoplot(f_s02_1)
+```
+
+```{r}
+a_s02_2 <- auto.arima(df2[,3])
+f_s02_2 <- forecast(a_s02_2, h= 140)
+autoplot(f_s02_2)
+```
+
+
+```{r}
+# export all predictions to excel
+write_xlsx(as.data.frame(f_s02_1), "Project1\\s02_1.xlsx")
+write_xlsx(as.data.frame(f_s02_2), "Project1\\s02_2.xlsx")
+```
+
+## s03
+
+```{r}
+df3 <- df %>%
+  filter(category == 'S03') %>%
+  dplyr::select(SeriesInd, Var05, Var07)
+
+summary(df2)
+```
+
+```{r}
+df3_imp <- mice(df3, method = "cart")
+df3 <- complete(df3_imp)
+```
+
+
+```{r}
+head(df3)
+```
+
+
+```{r}
+p1 <- df3 %>% ggplot(aes(x=SeriesInd, y= Var05)) + geom_line(color='blue')
+
+p2 <- df3 %>% ggplot(aes(x=SeriesInd, y= Var07)) + geom_line(color='blue')
+
+ggarrange(p1, p2, nrow=2)
+```
+
+
+```{r}
+a_s03_1 <- auto.arima(df3[,2])
+f_s03_1 <- forecast(a_s03_1, h= 140)
+autoplot(f_s03_1)
+```
+
+```{r}
+a_s03_2 <- auto.arima(df3[,3])
+f_s03_2 <- forecast(a_s03_2, h= 140)
+autoplot(f_s03_2)
+```
+
+
+```{r}
+# export all predictions to excel
+write_xlsx(as.data.frame(f_s03_1), "Project1\\s03_1.xlsx")
+write_xlsx(as.data.frame(f_s03_2), "Project1\\s03_2.xlsx")
+```
+
+## s04
+
+```{r}
+df4 <- df %>%
+  filter(category == 'S04') %>%
+  dplyr::select(SeriesInd, Var01, Var02)
+
+summary(df4)
+```
+
+```{r}
+df4_imp <- mice(df4, method = "cart")
+df4 <- complete(df4_imp)
+```
+
+
+```{r}
+head(df4)
+```
+
+
+```{r}
+p1 <- df4 %>% ggplot(aes(x=SeriesInd, y= Var01)) + geom_line(color='blue')
+
+p2 <- df4 %>% ggplot(aes(x=SeriesInd, y= Var02)) + geom_line(color='blue')
+
+ggarrange(p1, p2, nrow=2)
+```
+```{r}
+outlier <- (which.max(df4$Var02))
+df4$Var02[outlier] <- (df4$Var02[outlier-1] + df4$Var02[outlier+1])/2
+df4 %>% ggplot(aes(x=SeriesInd, y= Var02)) + geom_line(color='blue')
+```
+
+```{r}
+a_s04_1 <- auto.arima(df4[,2])
+f_s04_1 <- forecast(a_s04_1, h= 140)
+autoplot(f_s04_1)
+```
+
+```{r}
+a_s04_2 <- auto.arima(df4[,3])
+f_s04_2 <- forecast(a_s04_2, h= 140)
+autoplot(f_s04_2)
+```
+
+
+```{r}
+# export all predictions to excel
+write_xlsx(as.data.frame(f_s04_1), "Project1\\s04_1.xlsx")
+write_xlsx(as.data.frame(f_s04_2), "Project1\\s04_2.xlsx")
+```
+
+## s05
+
+```{r}
+df5 <- df %>%
+  filter(category == 'S05') %>%
+  dplyr::select(SeriesInd, Var02, Var03)
+
+summary(df5)
+```
+
+```{r}
+df5_imp <- mice(df5, method = "cart")
+df5 <- complete(df5_imp)
+```
+
+
+```{r}
+head(df5)
+```
+
+
+```{r}
+p1 <- df5 %>% ggplot(aes(x=SeriesInd, y= Var02)) + geom_line(color='blue')
+
+p2 <- df5 %>% ggplot(aes(x=SeriesInd, y= Var03)) + geom_line(color='blue')
+
+ggarrange(p1, p2, nrow=2)
+```
+
+```{r}
+outlier <- (which.max(df5$Var02))
+df5$Var02[outlier] <- (df5$Var02[outlier-1] + df5$Var02[outlier+1])/2
+df5 %>% ggplot(aes(x=SeriesInd, y= Var02)) + geom_line(color='blue')
+```
+
+
+```{r}
+a_s05_1 <- auto.arima(df5[,2])
+f_s05_1 <- forecast(a_s05_1, h= 140)
+autoplot(f_s05_1)
+```
+
+```{r}
+a_s05_2 <- auto.arima(df5[,3])
+f_s05_2 <- forecast(a_s05_2, h= 140)
+autoplot(f_s05_2)
+```
+
+
+```{r}
+# export all predictions to excel
+write_xlsx(as.data.frame(f_s05_1), "Project1\\s05_1.xlsx")
+write_xlsx(as.data.frame(f_s05_2), "Project1\\s05_2.xlsx")
+```
+
+
+## s06
+
+
+```{r}
+df6 <- df %>%
+  filter(category == 'S06') %>%
+  dplyr::select(SeriesInd, Var05, Var07)
+
+summary(df6)
+```
+
+```{r}
+df6_imp <- mice(df6, method = "cart")
+df6 <- complete(df6_imp)
+```
+
+
+```{r}
+head(df6)
+```
+
+
+```{r}
+p1 <- df6%>% ggplot(aes(x=SeriesInd, y= Var05)) + geom_line(color='blue')
+
+p2 <- df6 %>% ggplot(aes(x=SeriesInd, y= Var07)) + geom_line(color='blue')
+
+ggarrange(p1, p2, nrow=2)
+```
+
+```{r}
+outlier <- (which.max(df6$Var05))
+df6$Var05[outlier] <- (df6$Var05[outlier-1] + df6$Var05[outlier+1])/2
+df6 %>% ggplot(aes(x=SeriesInd, y= Var05)) + geom_line(color='blue')
+```
+
+```{r}
+outlier <- (which.max(df6$Var07))
+df6$Var07[outlier] <- (df6$Var07[outlier-1] + df6$Var07[outlier+1])/2
+df6 %>% ggplot(aes(x=SeriesInd, y= Var07)) + geom_line(color='blue')
+```
+
+
+```{r}
+a_s06_1 <- auto.arima(df6[,2])
+f_s06_1 <- forecast(a_s06_1, h= 140)
+autoplot(f_s06_1)
+```
+
+```{r}
+a_s06_2 <- auto.arima(df6[,3])
+f_s06_2 <- forecast(a_s06_2, h= 140)
+autoplot(f_s06_2)
+```
+
+
+```{r}
+# export all predictions to excel
+write_xlsx(as.data.frame(f_s06_1), "Project1\\s06_1.xlsx")
+write_xlsx(as.data.frame(f_s06_2), "Project1\\s06_2.xlsx")
+```
+
+
+

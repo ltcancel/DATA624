@@ -41,6 +41,7 @@ library(ggpubr)
 library(gridExtra)
 library(forecast)
 library(writexl)
+library(mice)
 ```
 
 # Project Summary
@@ -134,12 +135,8 @@ Taking these observations into consideration, it seems there appears to be bias 
 As stated, since the missing values are not MCAR, imputation will be utilized to represent missing values in our data set. There are numerous methods to impute data, especially in R. Within the caret package, the "preProcess()" function enables imputation and allows for users to select a method of imputation. The method "medianImpute" was chosen because of the ease and efficiency when handeling the data. This will replace all missing values with the median of a particular variable. After imputation, there are no longer any missing values. The data has also not been altered in a significant way which would compromise the integrity of the data as seen in the summary below.
 
 ```{r}
-# Imputation via "medianImpute" method within "preProcess()" function via the caret package
-
-preProcess_NAdata_model <- preProcess(as.data.frame(df), method ="medianImpute")
-
-df <- predict(preProcess_NAdata_model, newdata = df)
-
+df <- mice(df, method = "cart")
+df <- complete(df)
 paste0(sum(is.na(df))," values missing after imputation")
 ```
 
@@ -944,8 +941,8 @@ fets_s06_7 <- autoplot(fc_s06_ETS_7) + ylab("s06: Var07") +
 
 ```{r arima_s01, fig.height=10, fig.width=15}
 # Fit ARIMA models to Var01 & Var02
-fit_s01_ARIMA_1 <- auto.arima(s01_ts[,1], stepwise = TRUE)
-fit_s01_ARIMA_2 <- auto.arima(s01_ts[,2], stepwise = TRUE)
+fit_s01_ARIMA_1 <- auto.arima(s01_ts[,1])
+fit_s01_ARIMA_2 <- auto.arima(s01_ts[,2])
 # check residuals
 checkresiduals(fit_s01_ARIMA_1)
 checkresiduals(fit_s01_ARIMA_2)
@@ -1112,7 +1109,7 @@ f_hw1_s01_1 <- forecast(hw1_s01_1, h= 140)
 #forecast from Holt-Winters
 hw2_s01_2 <- HoltWinters(s01_ts[,2])
 f_hw2_s01_2 <- forecast(hw2_s01_2, h= 140)
-and Fin
+
  #forecast from Holt-Winters
 hw1_s02_1 <- HoltWinters(s02_ts[,1])
 f_hw1_s02_1 <- forecast(hw1_s02_1, h= 140)

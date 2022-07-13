@@ -1,0 +1,89 @@
+---
+title: "Untitled"
+author: "Ian Costello"
+date: '2022-07-13'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Required Libraries
+```{r warning=FALSE, message=FALSE}
+library(readxl)
+library(tidyverse)
+library(ggplot2)
+library(patchwork)
+library(fpp2)
+library(caret)
+library(RANN)
+library(VIM)
+library(ggpubr)
+library(gridExtra)
+library(forecast)
+library(writexl)
+library(mice)
+```
+
+
+```{r}
+df <- read_excel("data.xls")
+head(df)
+```
+
+
+
+```{r}
+df <- mice(df, method = "cart")
+df <- complete(df)
+```
+
+```{r}
+S01 <- df %>%
+  filter(category == "S01") %>%
+  as.ts()
+
+S02 <- df %>%
+  filter(category == "S02") %>%
+  as.ts()
+
+S03 <- df %>%
+  filter(category == "S03") %>%
+  as.ts()
+
+S04 <- df %>%
+  filter(category == "S04") %>%
+  as.ts()
+
+S05 <- df %>%
+  filter(category == "S05") %>%
+  as.ts()
+
+S06 <- df %>%
+  filter(category == "S06") %>%
+  as.ts()
+```
+
+
+```{r}
+head(s01)
+```
+
+
+```{r}
+fitA <- auto.arima(s01[,3])
+checkresiduals(fitA)
+```
+
+```{r}
+fcastA <- fitA %>% forecast(140) 
+fcastA %>% autoplot()
+```
+
+
+
+
+
+
+

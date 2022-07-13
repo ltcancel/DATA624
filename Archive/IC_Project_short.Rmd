@@ -1,0 +1,109 @@
+---
+title: "Data624 - Project 1"
+author: "Esteban Aramayo, Coffy Andrews-Guo, LeTicia Cancel, Joseph Connolly, Ian Costello"
+date: '2022-06-21'
+output: 
+  word_document:
+    toc: yes
+    toc_depth: '2'
+  html_document:
+    toc: yes
+    toc_float: yes
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE,
+                      message=FALSE,
+                      collapse = FALSE,
+                      comment = "#>" )
+```
+
+```{r echo=FALSE}
+# install from CRAN
+#install.packages("officedown")
+
+# or GitHub
+#remotes::install_github("davidgohel/officedown")
+```
+
+Required Libraries
+```{r warning=FALSE, message=FALSE}
+library(readxl)
+library(tidyverse)
+library(ggplot2)
+library(patchwork)
+library(fpp2)
+library(caret)
+library(RANN)
+library(VIM)
+library(ggpubr)
+library(gridExtra)
+library(forecast)
+library(writexl)
+```
+
+```{r}
+df <- read_excel("data.xls")
+head(df)
+```
+
+## Data Cleaning & Imputation
+
+```{r}
+# Factoring category to get a count of the elements within dataset
+df$category <- as.factor(df$category)
+
+
+summary(df)
+writeLines("\n\n")
+str(df)
+```
+
+```{r}
+df <- mice(df, method = "cart")
+df <- complete(df)
+```
+
+paste0(sum(is.na(df))," values missing after imputation")
+```
+
+```{r}
+# For forecasting later on
+#md
+
+s01 <- df %>% filter(category == "S01")
+s02 <- df %>% filter(category == "S02")
+s03 <- df %>% filter(category == "S03")
+s04 <- df %>% filter(category == "S04")
+s05 <- df %>% filter(category == "S05")
+s06 <- df %>% filter(category == "S06")
+```
+
+```{r}
+s01_ts <- ts(s01[,c("Var01","Var02")], frequency = 12, start = c(2011, 5), end = c(2018, 5))
+s02_ts <- ts(s02[,c("Var02","Var03")], frequency = 12, start = c(2011, 5), end = c(2018, 5))
+s03_ts <- ts(s03[,c("Var05","Var07")], frequency = 12, start = c(2011, 5), end = c(2018, 5))
+s04_ts <- ts(s04[,c("Var01","Var02")], frequency = 12, start = c(2011, 5), end = c(2018, 5))
+s05_ts <- ts(s05[,c("Var02","Var03")], frequency = 12, start = c(2011, 5), end = c(2018, 5))
+s06_ts <- ts(s06[,c("Var05","Var07")], frequency = 12, start = c(2011, 5), end = c(2018, 5))
+```
+
+```{r arima_s01, fig.height=10, fig.width=15}
+# Fit ARIMA models to Var01 & Var02
+fit_s01_ARIMA_1 <- auto.arima(s01_ts[,1])
+fit_s01_ARIMA_2 <- auto.arima(s01_ts[,2])
+# check residuals
+checkresiduals(fit_s01_ARIMA_1)
+checkresiduals(fit_s01_ARIMA_2)
+# forecast
+fc_s01_ARIMA_1 <- forecast(fit_s01_ARIMA_1)
+fc_s01_ARIMA_2 <- forecast(fit_s01_ARIMA_2)
+# plot forecasts
+fa_S01_1 <- autoplot(fc_s01_ARIMA_1) + ylab("S01: Var01") +
+  autolayer(fitted(fc_s01_ARIMA_1))
+fa_S01_2 <- autoplot(fc_s01_ARIMA_2) + ylab("S01: Var02") +
+  autolayer(fitted(fc_s01_ARIMA_2))
+(fa_S01_1 + fa_S01_2)
+```
+
