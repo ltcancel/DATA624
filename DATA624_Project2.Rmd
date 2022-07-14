@@ -19,14 +19,6 @@ knitr::opts_chunk$set(echo=FALSE, warning=FALSE,
                       comment = "#>" )
 ```
 
-```{r echo=FALSE}
-# install from CRAN
-#install.packages("officedown")
-
-# or GitHub
-#remotes::install_github("davidgohel/officedown")
-```
-
 ```{r warning=FALSE, message=FALSE}
 library(readxl)
 library(tidyverse)
@@ -39,4 +31,231 @@ library(VIM)
 library(ggpubr)
 library(gridExtra)
 library(forecast)
+library(psych)
+library(tidyverse)
+library(ggplot2)
+library(VIM)
+library(GGally)
+library(caret)
+library(broom)
+library(kableExtra)
+library(DataExplorer)
+library(psych)
+library(outliers)
 ```
+
+```{r}
+set.seed(1234)
+```
+
+```{r}
+raw_df <- read_csv("StudentData - TO MODEL.csv") %>%
+  select(-"Brand Code")
+```
+
+```{r}
+describe(raw_df)
+```
+## Feature Histograms
+
+```{r, warning = FALSE, message = FALSE, echo=FALSE}
+DataExplorer::plot_histogram(raw_df)
+```
+
+## Box Plots
+```{r}
+raw_df_1 <- raw_df[,1:16]
+raw_df_2 <- raw_df[,17:32]
+```  
+
+```{r, warning = FALSE, message = FALSE, echo=FALSE}
+ggplot(stack(raw_df_1), aes(x = ind, y = values)) +
+  geom_boxplot(color = "darkblue",
+               fill = "lightblue",
+               alpha = 0.2,
+               outlier.color = "red",
+               outlier.fill = "red",
+               outlier.alpha = 0.2,
+               notch = TRUE) + 
+  labs(title = "Boxplot of all feature variables") + 
+  scale_y_log10()
+
+ggplot(stack(raw_df_2), aes(x = ind, y = values)) +
+  geom_boxplot(color = "darkblue",
+               fill = "lightblue",
+               alpha = 0.2,
+               outlier.color = "red",
+               outlier.fill = "red",
+               outlier.alpha = 0.2,
+               notch = TRUE) + 
+  labs(title = "Boxplot of all feature variables") + 
+  scale_y_log10()
+```
+
+## Correlation
+
+```{r, warning = FALSE, message = FALSE, echo=FALSE}
+#correlation matrix for predictors
+ggcorr(raw_df)
+```
+
+## Relationship to Target
+
+```{r}
+
+par(mfrow = c(4,2))
+
+#include target in the df for numeric data
+histData <- raw_df 
+
+#How do I color by Targetflag
+featurePlot(x= histData[1:8], y = histData[['PH']])
+
+featurePlot(x= histData[9:16], y = histData[['PH']])
+
+featurePlot(x= histData[17:24], y = histData[['PH']])
+
+featurePlot(x= histData[25:32], y = histData[['PH']])
+
+#HOME KIDS and AGE NEED BAR CHARTS
+
+```
+
+# Data Preperation
+
+```{r}
+names(raw_df)[nearZeroVar(raw_df)]
+```
+
+## Missing Data and Imputation
+
+```{r, warning = FALSE, message = FALSE, echo=FALSE}
+#plot missing values using VIM package
+aggr(raw_df , col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE, labels=names(raw_df), cex.axis=.7, gap=3, ylab=c("Histogram of missing data","Pattern"))
+```
+
+```{r}
+preProc <- preProcess(as.data.frame(raw_df), method = c("BoxCox","center","scale","knnImpute"))
+df <- predict(preProc, as.data.frame(raw_df))
+```
+
+
+## Feature Q-Q Plots
+
+```{r, warning = FALSE, message = FALSE, echo=FALSE}
+DataExplorer::plot_histogram(df)
+```
+
+```{r, warning = FALSE, message = FALSE, echo=FALSE}
+qq_data <- df
+
+DataExplorer::plot_qq(qq_data, nrow = 4L, ncol = 3L)
+```
+
+```{r}
+xTrain <- df %>%
+  select(-PH)
+yTrain <- df %>%
+  select(PH)
+```
+
+# Model Building
+
+## "Leave One Out" Cross Validation 
+
+```{r}
+ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 10)
+```
+
+## Models Tested
+
+```{r}
+lm_model <- train(xTrain, yTrain$PH, method="lm", trControl=ctrl)
+lm_model
+```
+
+```{r}
+knn_model <- train(xTrain, yTrain$PH, method="knn", trControl=ctrl)
+knn_model
+```
+
+```{r}
+
+tooHigh <- findCorrelation(cor(xTrain), cutoff = .75)
+
+tooHigh
+
+```
+
+```{r}
+trainXnnet <- xTrain[, -tooHigh]
+```
+
+```{r nnet}
+
+# Resource: Chapter 7.5 of textbook "Applied Predictive Modeling" by KJ
+
+## Create a specific candidate set of models to evaluate:
+nnetGrid <- expand.grid(.decay = c(0, 0.01, .1),
+                        .size = c(1:10),
+                        .bag = FALSE)
+
+
+nnetTune <- train(xTrain, yTrain$PH,
+                  method = "avNNet",
+                  tuneGrid = nnetGrid,
+                  trControl = ctrl,
+                  linout = TRUE,
+                  trace = FALSE,
+                  MaxNWts = 1 * (ncol(trainXnnet) + 1) + 10 + 1,
+                  maxit = 50)
+
+nnetTune
+```
+
+```{r mars-chem}
+
+# Resource: Chapter 7.5 of textbook "Applied Predictive Modeling" by KJ
+# Resource: http://uc-r.github.io/mars
+
+library(earth)
+library(dplyr)
+
+## Create a specific candidate set of models to evaluate:
+marsGrid <- expand.grid(degree = 1:3,
+                        nprune = seq(2, 100, length.out = 10) %>% floor()
+  )
+
+# cross validated model
+tuned_MARS <- train(
+  x = xTrain,
+  y = yTrain$PH,
+  method = "earth",
+  metric = "RMSE",
+  trControl = ctrl,
+  tuneGrid = marsGrid
+)
+
+tuned_MARS
+
+```
+
+```{r svm}
+
+# Resource: Chapter 7.5 of textbook "Applied Predictive Modeling" by KJ
+
+library(kernlab)
+
+svmTuned <- train(xTrain, yTrain$PH,
+                   method = "svmRadial",
+                   preProc = c("center", "scale"),
+                   tuneLength = 14,
+                   trControl = ctrl)
+
+svmTuned
+
+```
+
+
+
+
