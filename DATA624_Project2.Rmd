@@ -19,18 +19,34 @@ knitr::opts_chunk$set(echo=FALSE, warning=FALSE,
                       comment = "#>" )
 ```
 
+# Project Summary
+
+For this project, we are tasked to predict the "potential of hydrogen" more commonly known as pH in a range of beverages. Two data sets are provided one for modeling and the other to use for predictions. The modeling data set contains 33 different features, including the target variable (`PH`). The predictor variables are all numeric except for `Brand`, which is a category. 
+
+## Definition of pH
+
+The pH of a solution is meant to describe its acidity or alkalinity (basic). The pH scale ranges from zero to fourteen, where values closer to zero are extremely acidic and usually quite dangerous if handled improperly. Values closer to fourteen are more basic, that is alkaline, and are **also** quite dangerous if handled improperly. Values in the middle of the scale usually defined as "around seven" are so-called neutral. Pure water, milk, sea water, and human saliva are often examples of neutral substances though can tend slightly either alkaline or acidic.
+
+## Libraries Used
+
+* Standard libraries applied (e.g., `tidyverse`, `psych`, `ggplot2`)
+* Portions of the data exploration where assisted by the `DataExplorer` package
+* Of particular use throughout the project is the `caret` package that provides for flexible pre-processing, modeling options, and tuning controls. 
+
+### Note on repeatability
+
+Because of how these data are structured and models created it may be necessary to repeat these steps to troubleshoot the code or scrutinize results. For this reason it is important to use `set.seed()` to provide exact conditions to reproduce these processes. For this project, the seed is set at 1234.  
+
 ```{r warning=FALSE, message=FALSE}
 library(readxl)
 library(tidyverse)
 library(ggplot2)
 library(patchwork)
-library(fpp2)
 library(caret)
 library(RANN)
 library(VIM)
 library(ggpubr)
 library(gridExtra)
-library(forecast)
 library(psych)
 library(tidyverse)
 library(ggplot2)
@@ -41,7 +57,6 @@ library(broom)
 library(kableExtra)
 library(DataExplorer)
 library(psych)
-library(outliers)
 ```
 
 ```{r}
@@ -53,16 +68,27 @@ raw_df <- read_csv("StudentData - TO MODEL.csv") %>%
   select(-"Brand Code")
 ```
 
+# Data Exploration
+
+From the start, the variable `Brand` is excluded as it is the only categorical variable which would require different operations (such as creating dummy variables) than the numeric columns. It also would seem that `Brand` would have little impact on pH of specific products. 
+
+Using `describe` on the remaining features provides the first glimpse of the shape of these variables. Of note are the skew and kurtosis values, which would at first blush generally indicate (or not) a normal distribution. 
+
 ```{r}
 describe(raw_df)
 ```
 ## Feature Histograms
+
+Variable histograms below better illustrate the shape of the feature distributions. The `PH` distribution appears to be normal, this is a requirment for linear regressions. For the other variables, the distributions are a mix. Some appear quite normal, such as `Carb Pressure`, `Carb Temp`, `Fill Ounces`. Others are bimodel, that is having two "peaks" in the distributions such as `Balling Lvl`, `Density`, `Carb Rel`. The third category of variable are those that may or may not have rather normal distributions but also have significant outliers such as `Hyd Pressure`, `Filler Speed`. 
 
 ```{r, warning = FALSE, message = FALSE, echo=FALSE}
 DataExplorer::plot_histogram(raw_df)
 ```
 
 ## Box Plots
+
+Using box plots will provide more insight into the outliers of these features.
+
 ```{r}
 raw_df_1 <- raw_df[,1:16]
 raw_df_2 <- raw_df[,17:32]
@@ -98,6 +124,7 @@ ggplot(stack(raw_df_2), aes(x = ind, y = values)) +
 #correlation matrix for predictors
 ggcorr(raw_df)
 ```
+
 
 ## Relationship to Target
 
@@ -139,12 +166,7 @@ preProc <- preProcess(as.data.frame(raw_df), method = c("BoxCox","center","scale
 df <- predict(preProc, as.data.frame(raw_df))
 ```
 
-
 ## Feature Q-Q Plots
-
-```{r, warning = FALSE, message = FALSE, echo=FALSE}
-DataExplorer::plot_histogram(df)
-```
 
 ```{r, warning = FALSE, message = FALSE, echo=FALSE}
 qq_data <- df
@@ -159,12 +181,42 @@ yTrain <- df %>%
   select(PH)
 ```
 
+```{r}
+head(xTrain)
+```
+
+
+```{r, warning = FALSE, message = FALSE, echo=FALSE}
+ggplot(stack(xTrain), aes(x = ind, y = values)) +
+  geom_boxplot(color = "darkblue",
+               fill = "lightblue",
+               alpha = 0.2,
+               outlier.color = "red",
+               outlier.fill = "red",
+               outlier.alpha = 0.2,
+               notch = TRUE) + 
+  labs(title = "Boxplot of all feature variables") + 
+  scale_y_log10()
+```
+
+```{r}
+
+tooHigh <- findCorrelation(cor(xTrain), cutoff = .75)
+
+tooHigh
+```
+
+```{r}
+xTrain <- xTrain[, -tooHigh]
+trainXnnet <- xTrain[, -tooHigh]
+```
+
 # Model Building
 
 ## "Leave One Out" Cross Validation 
 
 ```{r}
-ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 10)
+ctrl <- trainControl(method = "repeatedcv", number = 5, repeats = 5)
 ```
 
 ## Models Tested
@@ -177,18 +229,6 @@ lm_model
 ```{r}
 knn_model <- train(xTrain, yTrain$PH, method="knn", trControl=ctrl)
 knn_model
-```
-
-```{r}
-
-tooHigh <- findCorrelation(cor(xTrain), cutoff = .75)
-
-tooHigh
-
-```
-
-```{r}
-trainXnnet <- xTrain[, -tooHigh]
 ```
 
 ```{r nnet}
@@ -207,11 +247,13 @@ nnetTune <- train(xTrain, yTrain$PH,
                   trControl = ctrl,
                   linout = TRUE,
                   trace = FALSE,
-                  MaxNWts = 1 * (ncol(trainXnnet) + 1) + 10 + 1,
+                  MaxNWts = 1 * (ncol(trainXnnet) + 10) + 10 + 1,
                   maxit = 50)
 
 nnetTune
 ```
+
+
 
 ```{r mars-chem}
 
@@ -255,6 +297,49 @@ svmTuned <- train(xTrain, yTrain$PH,
 svmTuned
 
 ```
+
+```{r}
+plot(svmTuned)
+```
+
+```{r}
+rpart <- train(xTrain, yTrain$PH,
+               method = "rpart2", 
+               tuneLength = 10, 
+               trControl = ctrl)
+rpart
+```
+
+```{r}
+gbmG <- expand.grid(.interaction.depth = seq(1, 7, by = 2),
+                        .n.trees = seq(100, 1000, by = 100),
+                        .shrinkage = c(0.01, 0.1),
+                        .n.minobsinnode = 8)
+
+gbmModel <- train(xTrain, yTrain$PH,
+                  method = "gbm",
+                  tuneGrid =gbmG,
+                  trControl = ctrl,
+                  verbose=F
+                 )
+gbmModel
+```
+
+```{r}
+cubistTuned <- train(xTrain, yTrain$PH, 
+                     method = "cubist", 
+                     trControl = ctrl)
+
+cubistTuned
+```
+
+
+
+
+
+
+
+
 
 
 
