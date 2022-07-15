@@ -50,7 +50,7 @@ library(gridExtra)
 library(psych)
 library(tidyverse)
 library(ggplot2)
-library(VIM)
+
 library(GGally)
 library(caret)
 library(broom)
@@ -66,6 +66,9 @@ set.seed(1234)
 ```{r}
 raw_df <- read_csv("StudentData - TO MODEL.csv") %>%
   select(-"Brand Code")
+
+#remove whitespace between strings in headers - column names
+colnames(raw_df) <- gsub(" ","",colnames(raw_df))
 ```
 
 # Data Exploration
@@ -79,11 +82,13 @@ describe(raw_df)
 ```
 ## Feature Histograms
 
-Variable histograms below better illustrate the shape of the feature distributions. The `PH` distribution appears to be normal, this is a requirment for linear regressions. For the other variables, the distributions are a mix. Some appear quite normal, such as `Carb Pressure`, `Carb Temp`, `Fill Ounces`. Others are bimodel, that is having two "peaks" in the distributions such as `Balling Lvl`, `Density`, `Carb Rel`. The third category of variable are those that may or may not have rather normal distributions but also have significant outliers such as `Hyd Pressure`, `Filler Speed`. 
+Variable histograms below better illustrate the shape of the feature distributions. The `PH` distribution appears to be normal, this is a requirement for linear regressions. For the other variables, the distributions are a mix. Some appear quite normal, such as `Carb Pressure`, `Carb Temp`, `Fill Ounces`. Others are bimodel, that is having two "peaks" in the distributions such as `Balling Lvl`, `Density`, `Carb Rel`. The third category of variable are those that may or may not have rather normal distributions but also have significant outliers such as `Hyd Pressure`, `Filler Speed`. 
 
 ```{r, warning = FALSE, message = FALSE, echo=FALSE}
 DataExplorer::plot_histogram(raw_df)
 ```
+
+
 
 ## Box Plots
 
@@ -118,12 +123,43 @@ ggplot(stack(raw_df_2), aes(x = ind, y = values)) +
   scale_y_log10()
 ```
 
+
+**Alternative Box Plot**
+```{r, fig.height = 12, fig.width = 10, echo=FALSE}
+# Prepare data for ggplot
+df_boxplots <- raw_df %>% 
+  dplyr::select(-c(PH)) %>%
+  tidyr::drop_na() %>%
+  gather(key = 'variable', value = 'value')
+
+# Boxplots for each variable
+df_boxplots %>% ggplot() + 
+  geom_boxplot(aes(x=variable, y=value), fill = "lightblue", 
+               color = "darkblue", outlier.color = "red", outlier.alpha = 0.2) + 
+  facet_wrap(. ~variable, scales='free', ncol=4)+
+  labs(title = "Boxplot of all feature variables") + 
+  theme(plot.title = element_text(hjust = 0.5, size = 12, face = "bold"))
+
+```
+
+
+
 ## Correlation
 
 ```{r, warning = FALSE, message = FALSE, echo=FALSE}
 #correlation matrix for predictors
 ggcorr(raw_df)
 ```
+
+**Alternative Correlation Chart (Multicollinearity)** 
+```{r,echo=FALSE, fig.height=8, fig.width=10 }
+suppressPackageStartupMessages(library(corrplot))
+suppressPackageStartupMessages(library(RColorBrewer))
+correlation = cor(raw_df, use = 'pairwise.complete.obs')
+corrplot(correlation, 'ellipse', type = 'lower', order = 'hclust',
+         col=brewer.pal(n=8, name="Dark2"))
+```
+
 
 
 ## Relationship to Target
@@ -212,6 +248,8 @@ trainXnnet <- xTrain[, -tooHigh]
 ```
 
 # Model Building
+
+
 
 ## "Leave One Out" Cross Validation 
 
