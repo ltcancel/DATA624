@@ -88,43 +88,10 @@ Variable histograms below better illustrate the shape of the feature distributio
 DataExplorer::plot_histogram(raw_df)
 ```
 
-
-
 ## Box Plots
 
 Using box plots will provide more insight into the outliers of these features.
 
-```{r}
-raw_df_1 <- raw_df[,1:16]
-raw_df_2 <- raw_df[,17:32]
-```  
-
-```{r, warning = FALSE, message = FALSE, echo=FALSE}
-ggplot(stack(raw_df_1), aes(x = ind, y = values)) +
-  geom_boxplot(color = "darkblue",
-               fill = "lightblue",
-               alpha = 0.2,
-               outlier.color = "red",
-               outlier.fill = "red",
-               outlier.alpha = 0.2,
-               notch = TRUE) + 
-  labs(title = "Boxplot of all feature variables") + 
-  scale_y_log10()
-
-ggplot(stack(raw_df_2), aes(x = ind, y = values)) +
-  geom_boxplot(color = "darkblue",
-               fill = "lightblue",
-               alpha = 0.2,
-               outlier.color = "red",
-               outlier.fill = "red",
-               outlier.alpha = 0.2,
-               notch = TRUE) + 
-  labs(title = "Boxplot of all feature variables") + 
-  scale_y_log10()
-```
-
-
-**Alternative Box Plot**
 ```{r, fig.height = 12, fig.width = 10, echo=FALSE}
 # Prepare data for ggplot
 df_boxplots <- raw_df %>% 
@@ -142,16 +109,8 @@ df_boxplots %>% ggplot() +
 
 ```
 
-
-
 ## Correlation
 
-```{r, warning = FALSE, message = FALSE, echo=FALSE}
-#correlation matrix for predictors
-ggcorr(raw_df)
-```
-
-**Alternative Correlation Chart (Multicollinearity)** 
 ```{r,echo=FALSE, fig.height=8, fig.width=10 }
 suppressPackageStartupMessages(library(corrplot))
 suppressPackageStartupMessages(library(RColorBrewer))
@@ -159,8 +118,6 @@ correlation = cor(raw_df, use = 'pairwise.complete.obs')
 corrplot(correlation, 'ellipse', type = 'lower', order = 'hclust',
          col=brewer.pal(n=8, name="Dark2"))
 ```
-
-
 
 ## Relationship to Target
 
@@ -249,9 +206,7 @@ trainXnnet <- xTrain[, -tooHigh]
 
 # Model Building
 
-
-
-## "Leave One Out" Cross Validation 
+## Repeated Cross Validation 
 
 ```{r}
 ctrl <- trainControl(method = "repeatedcv", number = 5, repeats = 5)
@@ -290,8 +245,6 @@ nnetTune <- train(xTrain, yTrain$PH,
 
 nnetTune
 ```
-
-
 
 ```{r mars-chem}
 
@@ -371,7 +324,9 @@ cubistTuned <- train(xTrain, yTrain$PH,
 cubistTuned
 ```
 
+## Model Results
 
+# Model Selection
 
 
 
