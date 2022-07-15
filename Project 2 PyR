@@ -1,0 +1,267 @@
+---
+title: "Untitled"
+author: "Joe Connolly"
+date: '2022-07-12'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r warning=FALSE}
+setwd("C:/Users/jmcon/OneDrive/Documents/Data624")
+```
+
+#### R Libraries 
+
+```{r warning = FALSE}
+library(reticulate)
+library(readxl)
+library(xlsx)
+library(dplyr)
+library(VIM)
+library(mice)
+library(caret)
+library(ggplot2)
+library(reshape2)
+library(corrplot)
+library(DescTools)
+library(patchwork)
+# path_to_python <- "~/anaconda3/bin/python"
+# use_python(path_to_python)
+```
+
+### Data Importation, Exploration, Imputation
+
+```{r}
+train_r <- read.csv("https://raw.githubusercontent.com/ltcancel/DATA624/main/StudentData%20-%20TO%20MODEL.csv")
+
+test_r <- read.csv("https://raw.githubusercontent.com/ltcancel/DATA624/main/StudentEvaluation-%20TO%20PREDICT.csv")
+```
+
+```{r}
+dim(train_r)
+```
+
+```{r}
+# Rename first column of both sets
+
+train_r <- train_r %>% rename("Brand.Code" = "ï..Brand.Code")
+
+test_r <- test_r %>% rename("Brand.Code" = "ï..Brand.Code")
+```
+
+```{r}
+# Convert to factor
+train_r$Brand.Code <- as.factor(train_r$Brand.Code)
+test_r$Brand.Code <- as.factor(test_r$Brand.Code)
+```
+
+### Boxplots and Distribution Visualizations
+
+```{r fig.height = 10, fig.width=10}
+# 4 pages of boxplots of all variables
+
+# par(mfrow = c(3,3))
+# for(i in c(1:33)){
+#   boxplot(train_r[,i], main = colnames(train_r)[i])
+# }
+```
+
+- Most of the data does not appear to have outliers: filler speed, temperature, MFR, Oxygen.filler, Air.Pressure.
+
+```{r fig.height=10, fig.width=10}
+train_r.melt <- melt(train_r[,-1], id.vars = "PH")
+
+ggplot(train_r.melt, aes(x = variable, y = value, fill = PH)) + geom_boxplot() + facet_wrap(~variable, scales = "free") + theme_classic()
+```
+```{r}
+# Because the Brand name is categorical and is not the variable being predicted, it's reasonable to remove
+
+
+```
+
+
+```{r fig.height=10, fig.width=10}
+# Distribution Plots: Predicting PH
+
+# categorical
+brand.code.plot <- ggplot(train_r, aes(x = Brand.Code, fill = PH)) + geom_bar(position = position_dodge()) + theme_classic()
+
+# numerical
+pc.volume.plot <- ggplot(train_r, aes(x = PC.Volume, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+psc.plot <- ggplot(train_r, aes(x = PSC, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+mnf.flow.plot <- ggplot(train_r, aes(x = Mnf.Flow, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+hyd.pres1.plot <- ggplot(train_r, aes(x = Hyd.Pressure1, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+hypd.pres4.plot <- ggplot(train_r, aes(x = Hyd.Pressure4, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+temp.plot <- ggplot(train_r, aes(x = Temperature, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+density.plot <- ggplot(train_r, aes(x = Density, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+press.vacu.plot <- ggplot(train_r, aes(x = Pressure.Vacuum, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+bowl.setpt.plot <- ggplot(train_r, aes(x = Bowl.Setpoint, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+alch.rel.plot <- ggplot(train_r, aes(x = Alch.Rel, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+carb.vol.plot <- ggplot(train_r, aes(x = Carb.Volume, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+carb.pres.plot <- ggplot(train_r, aes(x = Carb.Pressure, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+psc.fill.plot <- ggplot(train_r, aes(x = PSC.Fill, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+carb.pres1.plot <- ggplot(train_r, aes(x = Carb.Pressure1, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+hyd.pres2.plot <- ggplot(train_r, aes(x = Hyd.Pressure2, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+filler.lvl.plot <- ggplot(train_r, aes(x = Filler.Level, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+usage.cnt.plot <- ggplot(train_r, aes(x = Usage.cont, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+mfr.plot <- ggplot(train_r, aes(x = MFR, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+ph.plot <- ggplot(train_r, aes(x = PH, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+press.setpnt.plot <- ggplot(train_r, aes(x = Pressure.Setpoint, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+carb.rel.plot <- ggplot(train_r, aes(x = Carb.Rel, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+fill.oz.plot <- ggplot(train_r, aes(x = Fill.Ounces, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+carb.temp.plot <- ggplot(train_r, aes(x = Carb.Temp, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+psc.c02.plot <- ggplot(train_r, aes(x = PSC.CO2, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+fill.press.plot <- ggplot(train_r, aes(x = Fill.Pressure, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+hyd.press.plot3 <- ggplot(train_r, aes(x = Hyd.Pressure3, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+filler.spd.plot <- ggplot(train_r, aes(x = Filler.Speed, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+carb.flow.plot <- ggplot(train_r, aes(x = Carb.Flow, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+balling.plot <- ggplot(train_r, aes(x = Balling, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+oxy.filler.plot <- ggplot(train_r, aes(x = Oxygen.Filler, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+air.press.plot <- ggplot(train_r, aes(x = Air.Pressurer, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+balling.lvl.plot <- ggplot(train_r, aes(x = Balling.Lvl, fill= PH)) + geom_histogram(position = "stack") + theme_classic()
+
+
+brand.code.plot + pc.volume.plot + psc.plot + mnf.flow.plot + hyd.pres1.plot + hypd.pres4.plot  +temp.plot + density.plot + press.vacu.plot + bowl.setpt.plot + alch.rel.plot + carb.vol.plot + carb.pres.plot  + psc.fill.plot + carb.pres1.plot + hyd.pres2.plot + filler.lvl.plot + usage.cnt.plot + mfr.plot + ph.plot + press.setpnt.plot + carb.rel.plot + fill.oz.plot + carb.temp.plot + psc.c02.plot + fill.press.plot + hyd.press.plot3 + filler.spd.plot + carb.flow.plot + balling.plot + oxy.filler.plot + air.press.plot + balling.lvl.plot + plot_layout(ncol = 5, guides = "collect")
+```
+
+### Correlation
+
+```{r fig.height=14, fig.width=16}
+corrplot(cor(train_r[,-1], use = "na.or.complete"), method = "number", type = "lower", diag = F, tl.srt = 0.1)
+```
+
+```{r}
+# removing variables correlated > 80
+
+train_r$Carb.Volume <- NULL
+train_r$Carb.Pressure <- NULL
+train_r$Mnf.Flow <- NULL
+train_r$Fill.Pressure <- NULL
+train_r$Hyd.Pressure2 <- NULL 
+train_r$Filler.Level <- NULL
+train_r$Filler.Speed <- NULL
+train_r$Balling <- NULL
+train_r$Alch.Rel <- NULL
+train_r$Carb.Rel <- NULL
+train_r$Balling.Lvl <- NULL
+train_r$Pressure.Setpoint <- NULL
+train_r$Bowl.Setpoint <- NULL
+train_r$MFR <- NULL
+train_r$Hyd.Pressure3 <- NULL
+train_r$Carb.Temp <- NULL
+train_r$Brand.Code <- NULL
+
+train_r1 <- na.omit(train_r)
+train_r1
+```
+
+```{r fig.width=10, fig.height=10}
+# Correlation after removal
+
+corrplot(cor(train_r1, use = "na.or.complete"), method = "number", type = "lower", diag = F, tl.srt = 0.1)
+```
+
+Multicollinearity is eliminated
+
+```{r}
+write.csv(train_r1, file = "P2_prepared_training.csv")
+```
+
+# Python
+
+#### Python Libraries
+```{r}
+library(reticulate)
+```
+
+#### Python Packages
+
+```{python}
+import pandas as pd
+import numpy as np
+import scikit-learn as skl
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+```
+
+```{python}
+pd.set_option("display.max_columns", None)
+```
+
+```{python}
+train_py = pd.read_csv("P2_prepared_training.csv")
+test_py = pd.read_csv("https://raw.githubusercontent.com/ltcancel/DATA624/main/StudentEvaluation-%20TO%20PREDICT.csv")
+```
+
+```{python}
+print(train_py)
+```
+
+
+```{python}
+train_py.info()
+```
+
+```{python fig.width = 10, fig.height = 14}
+hist = train_py.hist(bins = 30, figsize = (20,20)) # Not rendering?
+
+plt.show(hist)
+```
+
+```{python}
+# Transformations
+
+train_py["PSC"] = np.log(train_py["PSC"])
+train_py["PSC.Fill"] = np.log(train_py["PSC.Fill"])
+train_py["Carb.Pressure1"] = np.log(train_py["Carb.Pressure1"])
+train_py["Hyd.Pressure1"] = np.sqrt(train_py["Hyd.Pressure1"])
+train_py["Temperature"] = np.log(train_py["Temperature"])
+train_py["Usage.cont"] = np.cbrt(train_py["Usage.cont"])
+train_py["Carb.Flow"] = np.log(train_py["Carb.Flow"])
+train_py["Density"] = np.cbrt(train_py["Density"])
+train_py["Oxygen.Filler"] = np.sqrt(train_py["Oxygen.Filler"])
+train_py["Air.Pressurer"] = np.log(train_py["Air.Pressurer"])
+```
+
+```{python}
+train_py
+```
+
+```{python fig.width = 10, fig.height = 14}
+train_py.hist()
+plt.show()
+```
