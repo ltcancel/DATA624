@@ -21,7 +21,7 @@ knitr::opts_chunk$set(echo=FALSE, warning=FALSE,
 
 # Project Summary
 
-For this project, we are tasked to predict the "potential of hydrogen" more commonly known as pH in a range of beverages. Two data sets are provided one for modeling and the other to use for predictions. The modeling data set contains 33 different features, including the target variable (`PH`). The predictor variables are all numeric except for `Brand`, which is a category. 
+For this project, we are tasked to predict the "potential of hydrogen" more commonly known as pH in a range of beverages. Two data sets are provided one for modeling and the other to use for predictions. The modeling data set contains 33 different features, including the target variable (`PH`). The predictor variables are all numeric except for `Brand Code`, which has a categorical. 
 
 ## Definition of pH
 
@@ -33,9 +33,9 @@ The pH of a solution is meant to describe its acidity or alkalinity (basic). The
 * Portions of the data exploration where assisted by the `DataExplorer` package
 * Of particular use throughout the project is the `caret` package that provides for flexible pre-processing, modeling options, and tuning controls. 
 
-### Note on repeatability
+### CODE Reproducibility / Repeatability
 
-Because of how these data are structured and models created it may be necessary to repeat these steps to troubleshoot the code or scrutinize results. For this reason it is important to use `set.seed()` to provide exact conditions to reproduce these processes. For this project, the seed is set at 1234.  
+The reproducibility and repeatability of the analysis is important on building upon findings or providing comparison results. The datasets are structured and the machine learning models (classification and regression), will require a broad approach on code organizing, code reporting, and many other features.  Learning best practices for writing reproducible code is an iterative learning process on repeating steps to troubleshoot, modify, and gain insights for accurate results. The `set.seed` function is set at `1234` to provide exact conditions to reproduce these processes.   
 
 ```{r warning=FALSE, message=FALSE}
 library(readxl)
@@ -50,7 +50,6 @@ library(gridExtra)
 library(psych)
 library(tidyverse)
 library(ggplot2)
-
 library(GGally)
 library(caret)
 library(broom)
@@ -71,16 +70,19 @@ raw_df <- read_csv("StudentData - TO MODEL.csv") %>%
 colnames(raw_df) <- gsub(" ","",colnames(raw_df))
 ```
 
-# Data Exploration
+## Data Exploration
 
-From the start, the variable `Brand` is excluded as it is the only categorical variable which would require different operations (such as creating dummy variables) than the numeric columns. It also would seem that `Brand` would have little impact on pH of specific products. 
+The variable `Brand Code` is excluded as it is the only categorical variable which would require different operations (such as creating dummy variables) than the numeric columns. It also would seem that `Brand Code` would have little impact on pH of specific products. 
 
 Using `describe` on the remaining features provides the first glimpse of the shape of these variables. Of note are the skew and kurtosis values, which would at first blush generally indicate (or not) a normal distribution. 
 
 ```{r}
 describe(raw_df)
 ```
-## Feature Histograms
+
+## Data Visualizations
+
+### Feature Histograms
 
 Variable histograms below better illustrate the shape of the feature distributions. The `PH` distribution appears to be normal, this is a requirement for linear regressions. For the other variables, the distributions are a mix. Some appear quite normal, such as `Carb Pressure`, `Carb Temp`, `Fill Ounces`. Others are bimodel, that is having two "peaks" in the distributions such as `Balling Lvl`, `Density`, `Carb Rel`. The third category of variable are those that may or may not have rather normal distributions but also have significant outliers such as `Hyd Pressure`, `Filler Speed`. 
 
@@ -88,7 +90,7 @@ Variable histograms below better illustrate the shape of the feature distributio
 DataExplorer::plot_histogram(raw_df)
 ```
 
-## Box Plots
+### Box Plots
 
 Using box plots will provide more insight into the outliers of these features.
 
@@ -109,7 +111,7 @@ df_boxplots %>% ggplot() +
 
 ```
 
-## Correlation
+### Correlation
 
 ```{r,echo=FALSE, fig.height=8, fig.width=10 }
 suppressPackageStartupMessages(library(corrplot))
@@ -119,7 +121,7 @@ corrplot(correlation, 'ellipse', type = 'lower', order = 'hclust',
          col=brewer.pal(n=8, name="Dark2"))
 ```
 
-## Relationship to Target
+### Relationship to Target
 
 ```{r}
 
@@ -141,13 +143,13 @@ featurePlot(x= histData[25:32], y = histData[['PH']])
 
 ```
 
-# Data Preperation
+## Data Preparation
 
 ```{r}
 names(raw_df)[nearZeroVar(raw_df)]
 ```
 
-## Missing Data and Imputation
+### Missing Data and Imputation
 
 ```{r, warning = FALSE, message = FALSE, echo=FALSE}
 #plot missing values using VIM package
