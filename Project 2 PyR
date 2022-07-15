@@ -200,3 +200,68 @@ Multicollinearity is eliminated
 ```{r}
 write.csv(train_r1, file = "P2_prepared_training.csv")
 ```
+
+# Python
+
+#### Python Libraries
+```{r}
+library(reticulate)
+```
+
+#### Python Packages
+
+```{python}
+import pandas as pd
+import numpy as np
+import scikit-learn as skl
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+```
+
+```{python}
+pd.set_option("display.max_columns", None)
+```
+
+```{python}
+train_py = pd.read_csv("P2_prepared_training.csv")
+test_py = pd.read_csv("https://raw.githubusercontent.com/ltcancel/DATA624/main/StudentEvaluation-%20TO%20PREDICT.csv")
+```
+
+```{python}
+print(train_py)
+```
+
+
+```{python}
+train_py.info()
+```
+
+```{python fig.width = 10, fig.height = 14}
+hist = train_py.hist(bins = 30, figsize = (20,20)) # Not rendering?
+
+plt.show(hist)
+```
+
+```{python}
+# Transformations
+
+train_py["PSC"] = np.log(train_py["PSC"])
+train_py["PSC.Fill"] = np.log(train_py["PSC.Fill"])
+train_py["Carb.Pressure1"] = np.log(train_py["Carb.Pressure1"])
+train_py["Hyd.Pressure1"] = np.sqrt(train_py["Hyd.Pressure1"])
+train_py["Temperature"] = np.log(train_py["Temperature"])
+train_py["Usage.cont"] = np.cbrt(train_py["Usage.cont"])
+train_py["Carb.Flow"] = np.log(train_py["Carb.Flow"])
+train_py["Density"] = np.cbrt(train_py["Density"])
+train_py["Oxygen.Filler"] = np.sqrt(train_py["Oxygen.Filler"])
+train_py["Air.Pressurer"] = np.log(train_py["Air.Pressurer"])
+```
+
+```{python}
+train_py
+```
+
+```{python fig.width = 10, fig.height = 14}
+train_py.hist()
+plt.show()
+```
