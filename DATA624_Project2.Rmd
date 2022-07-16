@@ -33,7 +33,7 @@ The pH of a solution is meant to describe its acidity or alkalinity (basic). The
 * Portions of the data exploration where assisted by the `DataExplorer` package
 * Of particular use throughout the project is the `caret` package that provides for flexible pre-processing, modeling options, and tuning controls. 
 
-### CODE Reproducibility / Repeatability
+### Code Reproducibility / Repeatability
 
 The reproducibility and repeatability of the analysis is important on building upon findings or providing comparison results. The datasets are structured and the machine learning models (classification and regression), will require a broad approach on code organizing, code reporting, and many other features.  Learning best practices for writing reproducible code is an iterative learning process on repeating steps to troubleshoot, modify, and gain insights for accurate results. The `set.seed` function is set at `1234` to provide exact conditions to reproduce these processes.   
 
