@@ -1,25 +1,25 @@
 ---
-title: "DRAFT - Project2_PyScript"
+title: "Beverage PH Analysis - PY Script"
 author: "Coffy Andrews-Guo"
-date: '2022-07-12'
-output: html_document
+date: '2022-07-02'
+output:
+  word_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::knit_engines$set(python = reticulate::eng_python)
 ```
 
-## DRAFT - Beverage Manufacturing Company
+## PYSCRIPT - Beverage Manufacturing Company
 
 ### 1. Introduction
 
-**Predict pH**
-A simple data set from a beverage manufacturing company. The data set consists of 2571 rows/cases of data and 33 columns/variables. This analysis will p
-
-
 
 ### 2. Required R Libraries / Import Python Packages 
-The ETL process will incorportate two programming languages, R and Python, and used to model predictions.
+
+The ETL process will incorporate two programming languages, R and Python, and used to model predictions.
 
 ```{r r-packages}
 # R packages
@@ -38,8 +38,8 @@ def ignore_warn(*args, **kwargs):
 
 warnings.warn = ignore_warn #ignore annoying warning (from sklearn and seaborn)
 
-import pandas as pd  #used for handling numbers
-import numpy as np   #used for handling the dataset
+import pandas as pd  #data processing
+import numpy as np   #linear algebra
 import openpyxl
 import pyreadr  #read and write R RData and Rds files into/from pandas dataframes
 import matplotlib.pyplot as plt   #create graphs
@@ -49,158 +49,249 @@ import seaborn as sns
 
 
 
-### 3. Load Data
+### 3. Load Data and Save Original Data Files
 
-```{python py-loadData, eval = False}
+```{python}
 pydf = pd.read_excel("StudentData - TO MODEL.xlsx")
-pydf.head()
+pydf.head(3)
 
 #remove the space from column name 
 pydf.columns = pydf.columns.str.replace(' ', '')
-print("\n\n", pydf)
+print("Removed Space between Header Strings", pydf.head(3))
 ```
 
+```{python}
+pyde = pd.read_excel("StudentEvaluation- TO PREDICT.xlsx")
+pyde.head(3)
 
-**Writing Files - RData and Rds**
-
-Pyreadr allows you to write one single pandas data frame into a single R dataframe and store it into a RData or Rds file.
-```{python py-writeData, eval = False}
-# let's write into RData
-# df_name is the name for the dataframe in R, by default dataset
-pyreadr.write_rdata("test.RData",pydf, df_name="dataset")
-
-# now let's write a Rds
-pyreadr.write_rds("test.Rds", pydf)
-
-# done!
+#remove the space from column name 
+pyde.columns = pyde.columns.str.replace(' ', '')
+print("Removed Space between Header Strings", pyde.head(3))
 ```
 
-
-**Reading files (R - load/readRDS)**
-
-Checking the result in R:
-```{r r-readData, eval=FALSE}
-load("test.RData")
-head(dataset[,1:5],4) #columns 1 - 5
-
-dataset2 <- readRDS("test.Rds")
-head(dataset2[,5:10],4) #columns 5 -10
+**View the dataset size:**
+```{python}
+print("\n Model dataframe shape\n", pydf.shape, "\n\nPredict dataframe shape\n", pyde.shape)
 ```
 
-
-**Reading files (python::pyreadr)**
-
-Pass the path to a RData or Rds file to the function read_r. It will return a dictonary with object names as keys and pandas data frames as values
-
-For example, in order to read a RData file:
-```{python py-readRData}
-result = pyreadr.read_r('test.RData')
-
-# done! let's see what we got
-print(result.keys()) # let's check what objects we got
-df1 = result["dataset"] # extract the pandas data frame for object dataset
-```
-
-reading a Rds files have on single object, which you can access with the key None:
-```{python py-readRdsData, eval = False}
-result = pyreadr.read_r('test.Rds')
-
-# done! let's see what we got
-print(result.keys()) # let's check what objects we got: there is only None
-df2 = result[None] # extract the pandas data frame for the only object available
-```
 
 ### 4. Exploratory Data Analysis (EDA)
 
 #### 4.1 Descriptive Statistics
 
-Perform descriptive analysis on original data set. The descriptive functions will provide the **mean, std** and **IQR** values. 
-
-**Perform basic analysis, we will evaluate data quality and missing missing values. https://faculty.washington.edu/otoomet/machinelearning-py/descriptive-analysis-with-pandas.html
-
-
-**View the dataset size:**
+**View the Data frame rows:**
 ```{python}
-df1.shape
-```
-The `.shape` attribute tells us that the dataset contains 2571 rows and 33 columns.
-
-
-**View the data rows:**
-```{python}
-# check data distribution
-df1.head()
+#check data distribution on first 4 rows and 5 columns
+print("Train dataframe:\n", pydf.iloc[:4, :5].round(2), "\n\nPredict dataframe:\n", pyde.iloc[:4, :5].round(2)) 
 ```
 
+#### 4.2 Formatting Data / Filtering Data / Cleaning Data
+
+**Missing Values - Categorical Variable**
 ```{python}
-df1.tail()
+#replace NaN values with string in specific column
+pydf[['BrandCode']] = pydf[["BrandCode"]].fillna("Missing") 
+pyde[['BrandCode']] = pyde[["BrandCode"]].fillna("Missing")
 ```
 
-The `.head()` and `.tail()` attributes provides a view of the first and last lines of the data.
-
+**Grouped by Brand Code**
 ```{python}
-df1.sample(5)
-```
-The `.sample()` attribute provides a view of random rows of the data.
-
-
-The `describe` function gives the summary of all the statistical information of the data frame (only the numerical columns).
-```{python}
-print(df1.describe())
-#add a parameter inside the describe(include='all') function to see all columns
+#view dataframe first 6 columns based on 'BrandCode` summary grouping
+g = pydf.groupby('BrandCode').sum()
+g.iloc[:, :6].round(3)
 ```
 
-<br>
 
-**Variable Names**
-```{python}
-list(df1.columns)
-```
-
-The `.columns()` attribute provides a list of variable names in the form of a special *Index* data structure that is converted to a list.
-
-<br>
-
-**Data Type**
-```{python}
-#information about the data columns
- df1.info()
-```
-The data types tells that only *Brand Code* is an "object", meaning it is a string. The other data types are "float64" or decimal floating point number.
-
-
-
-
-
-#### 4.2 Filtering Data
-
-*Missing Values - Categorical Variable*
-```{python}
-df1[['BrandCode']] = df1[["BrandCode"]].fillna("Z") #replace NaN values with string in specific column
-```
-
-*Grouped by Brand Code*
-```{python}
-g = df1.groupby('BrandCode').sum()
-g.round(3)
-```
-
-*Grouped PH values by Brand Code*
-```{python}
-g1 = df1.groupby('BrandCode')['PH'].sum()
-g1
-```
-
-**View Variables Statistics**
-```{python}
-np.around(df1.describe(), decimals = 3)
-```
+**Removing NaN values in the Numerical Variables**
 
 ```{python}
-df1.skew().round(3)  #pandas 
+from sklearn.impute import SimpleImputer
+```
+
+The data set is relatively small and the missing values will remain. The NaN's will be replaced with a constant: `zero`. 
+```{python}
+# 'np.nan' signifies that we are targeting missing values
+# and the strategy we are choosing is replacing it with a 'constant'
+imputer = SimpleImputer(missing_values=np.nan, strategy='constant', fill_value = 0)
+
+imputer.fit(pydf.iloc[:, 1:])
+pydf.iloc[:, 1:] = imputer.transform(pydf.iloc[:, 1:])  
+
+imputer.fit(pyde.iloc[:, 1:])
+pyde.iloc[:, 1:] = imputer.transform(pyde.iloc[:, 1:])
+
+#print the dataset
+#modeldf
+```
+
+
+**Creating Dummies**
+```{python}
+#created new data frame with `BrandCode` dummy variables
+modeldf2 = pd.get_dummies(pydf, columns=['BrandCode'])
+predictdf2 = pd.get_dummies(pyde, columns=['BrandCode'])
+```
+
+
+**PH value scores and transformation**
+```{python}
+#transform func.
+modeldf2['PH'] = modeldf2['PH'].apply(lambda value: 1 if value >= 7.35 else 0)
+```
+
+
+
+#### 4.3 PreProcessing
+
+**PreProcessing - Creating Train / Test data**
+```{python}
+#train set
+x_model = modeldf2["PH"]  #target variable / dependent variable
+modeldf2.drop("PH", inplace = True, axis = 1) #independent variables
+modeldf2.shape
+x_model.shape
+```
+Removing `PH` column from `Predict` data set because the `predicted` values are not present.
+
+**Perform Train / Test split**
+```{python}
+from sklearn.model_selection import train_test_split
+x_train,x_test,y_train,y_test = train_test_split(modeldf2,x_model,test_size=0.2,random_state=40)
+```
+
+View the train/test data frame:
+```{python}
+x_train.shape , x_test.shape , y_train.shape , y_test.shape
+
+print("\n\nSample view of x-train set:\n", x_train.iloc[:4, :5].round(2))
+```
+
+**Implemting SMOTE - Imbalance data**
+```{python}
+from imblearn.over_sampling import SMOTE
+```
+
+
+```{python}
+#imbalance data
+seed = 100
+k = 1
+smote = SMOTE(sampling_strategy='auto', k_neighbors = k , random_state = seed)
+x_train, y_train = smote.fit_resample(x_train, y_train)
+y_train.value_counts()
+```
+
+### 5. CLASSIFICATION MODELS
+
+
+```{python}
+
+import copy as cp
+
+from sklearn.datasets import make_classification
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import GaussianNB
+from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
+from sklearn.ensemble import ExtraTreesClassifier
+
+from sklearn.model_selection import StratifiedKFold, train_test_split, PredefinedSplit, GridSearchCV
+from sklearn.ensemble import StackingClassifier
+from sklearn.metrics import accuracy_score
+
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import GradientBoostingClassifier
+from lightgbm import LGBMClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neural_network import MLPClassifier
+
+
+from collections.abc import Iterable
+from more_itertools import powerset
+
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
+RANDOM_STATE : int = 21
+TARGET : int = 60
+```
+
+#### 5.1 Build Stack Models
+```{python}
+level_0_classifiers = dict()
+level_0_classifiers["logreg"] = LogisticRegression(random_state=RANDOM_STATE)
+level_0_classifiers["forest"] = RandomForestClassifier(random_state=RANDOM_STATE)
+level_0_classifiers["xgboost"] = XGBClassifier(use_label_encoder=False, eval_metric='logloss', random_state=RANDOM_STATE)
+level_0_classifiers["naive_bayes"] = GaussianNB()
+level_0_classifiers["knn"] = KNeighborsClassifier()
+level_0_classifiers["gbm"] = GradientBoostingClassifier()
+level_0_classifiers["lgbm"] = LGBMClassifier()
+level_0_classifiers["clf"] = DecisionTreeClassifier()
+level_0_classifiers["mlpc"] = MLPClassifier()
+
+
+level_1_classifier = ExtraTreesClassifier(random_state=RANDOM_STATE)
+```
+
+
+```{python}
+kfold = StratifiedKFold(n_splits=5, 
+                        shuffle=True, 
+                        random_state=RANDOM_STATE)
+stacking_model = StackingClassifier(estimators=list(level_0_classifiers.items()), 
+                                    final_estimator=level_1_classifier, 
+                                    passthrough=True, 
+                                    cv=kfold, 
+                                    stack_method="predict_proba")
+```
+
+
+
+#### 5.2 Generate classification predictions on Base Models**
+
+```{python}
+level_0_columns = [f"{name}" for name in level_0_classifiers.keys()]
+stackfit = pd.DataFrame(stacking_model.fit_transform(x_train, y_train), 
+             columns=level_0_columns + list(x_train.columns))
+             
+pd.melt(stackfit.iloc[:1, :9].round(6), var_name="Model", value_name="Prediction")
+```
+
+#### 5.3 Generate Secondary Level Model Predictions (Final Predictions)**
+
+```{python}
+transformed = pd.DataFrame(stacking_model.transform(x_test), columns=level_0_columns + list(x_train.columns))
+transformed.iloc[:5, :9]
 ```
 
 ```{python}
-print("\nThe maximum skew value of the data frame ", df1.skew().max().round(3))
-print("\n\nThe minimum skew value of the data frame", df1.skew().min().round(3))
+y_val_pred = stacking_model.predict(x_test)
+#y_val_pred
 ```
+
+### 5.4 Evaluation
+
+```{python}
+accuracy = pd.DataFrame([[accuracy_score(y_test, cp.deepcopy(classifier).fit(x_train, y_train).predict(x_test)) for name, 
+                          classifier in level_0_classifiers.items()]],
+                        columns=level_0_columns,
+                        index = ["accuracy"])
+accuracy.insert(4, "extra_tree_prediction", accuracy_score(y_test, y_val_pred))
+pd.melt(accuracy.round(6), var_name="Model", value_name="Prediction Accuracy")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
