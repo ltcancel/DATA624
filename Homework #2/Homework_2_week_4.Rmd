@@ -26,12 +26,6 @@ Loading in the libraries referenced in Sect. 6.5.
 
 
 ```{r}
-library(webshot)
-install_phantomjs(force = TRUE)
-```
-
-
-```{r}
 library(elasticnet)
 library(caret)
 library(MASS)
@@ -319,8 +313,6 @@ knnPred <- predict(knnModel, newdata = testingData$x)
 postResample(pred = knnPred, obs = testingData$y)
 ```
 
-**Which models appear to give the best performance? Does MARS select the informative predictors (those named X1–X5)?**
-
 <br>
 
 #### Using a Neural Network model
@@ -479,6 +471,13 @@ postResample(pred = svmPred, obs = testingData$y)
 
 
 **Which models appear to give the best performance? Does MARS select the informative predictors (those named X1–X5)?**
+
+```{r}
+plot(caret::varImp(tuned_mars), top = 10)
+
+caret::varImp(tuned_mars)
+
+```
 
 Comparing all used models we can see that the **MARS** model yields the best performance in terms of the lowest **RMSE = 1.2803060** and highest $R^2$.
 
@@ -866,7 +865,7 @@ rfImp1 %>%
 ```
 
 ### b. Now add an additional predictor that is highly correlated with one of the informative predictors. For example:
-=======
+
 ```{r}
 # From book
 
@@ -1145,7 +1144,7 @@ rpart.plot(rpartTree)
 
 **Imagine 10000 receipts sitting on your table. Each receipt represents a transcation with items that were purchased. The receipt is a representation of stuff that went into a customer's basket - and therefore 'Market Basket Analysis'.**
 
-**That is exactly what the Groceries Data Set contains: a collection of receipts with each line representing 1 receipt and the items purchased. Each line is called a** $$transaction$$ **and each column in a row represents an** $item.$
+**That is exactly what the Groceries Data Set contains: a collection of receipts with each line representing 1 receipt and the items purchased. Each line is called a transaction and each column in a row represents an item.**
 
 **Here is the dataset =**[GroceryDataSet.csv](https://bbhosted.cuny.edu/bbcswebdav/pid-8461316-dt-announcement-rid-389564218_1/xid-389564218_1)**(comma separated file)**
 
@@ -1588,7 +1587,7 @@ dfresults.head()
 support = dfresults.support
 ```
 
-**Converting orderstatistic in a proper format.**
+**Converting order statistic in a proper format.**
 
 Order statistic has lhs => rhs as well rhs => lhs. Let's choose first one which is 'df_results['ordered_statistics'][i][0]'
 

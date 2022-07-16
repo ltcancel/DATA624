@@ -33,7 +33,7 @@ The pH of a solution is meant to describe its acidity or alkalinity (basic). The
 * Portions of the data exploration where assisted by the `DataExplorer` package
 * Of particular use throughout the project is the `caret` package that provides for flexible pre-processing, modeling options, and tuning controls. 
 
-### CODE Reproducibility / Repeatability
+### Code Reproducibility / Repeatability
 
 The reproducibility and repeatability of the analysis is important on building upon findings or providing comparison results. The datasets are structured and the machine learning models (classification and regression), will require a broad approach on code organizing, code reporting, and many other features.  Learning best practices for writing reproducible code is an iterative learning process on repeating steps to troubleshoot, modify, and gain insights for accurate results. The `set.seed` function is set at `1234` to provide exact conditions to reproduce these processes.   
 
@@ -90,9 +90,11 @@ Variable histograms below better illustrate the shape of the feature distributio
 DataExplorer::plot_histogram(raw_df)
 ```
 
-### Box Plots
+### Box Plots and Outliers
 
-Using box plots will provide more insight into the outliers of these features.
+Using box plots will provide more insight into the outliers of these features. Deciding whether or not to smooth, delete, or impute outliers is a critical step in preparing data for a model. Based on these data, it is likely that the test set will also have outliers and so it may be more advantageous to keep them as is to train the model when it encounters them in the test set. 
+
+Perhaps it is better to focus on including important features, or features with more normal distributions than treating specific features for their outliers.
 
 ```{r, fig.height = 12, fig.width = 10, echo=FALSE}
 # Prepare data for ggplot
@@ -113,6 +115,8 @@ df_boxplots %>% ggplot() +
 
 ### Correlation
 
+Because of the amount of features in this data set, multicollinearity is an issue. Below, the correlation plot indicates a few features that interact with each other and the target variable. Including all these features will negatively impact the model as they are interrelated. Later the variables with correlation values over 0.75 will be removed. 
+
 ```{r,echo=FALSE, fig.height=8, fig.width=10 }
 suppressPackageStartupMessages(library(corrplot))
 suppressPackageStartupMessages(library(RColorBrewer))
@@ -122,6 +126,8 @@ corrplot(correlation, 'ellipse', type = 'lower', order = 'hclust',
 ```
 
 ### Relationship to Target
+
+Another way to analyze and select features is understanding the relationship between the predictor and target variables. From these graphs, one cannot see particularly strong relationships by these graphs alone. `Filter Level` and `Pressure Vacuum` are slight exceptions with a hint of a positive relationship. Given the information from these graphs, the bimodal distributed variables should likely be removed.
 
 ```{r}
 
@@ -143,13 +149,19 @@ featurePlot(x= histData[25:32], y = histData[['PH']])
 
 ```
 
-## Data Preparation
+# Data Preparation
+
+### Near-Zero Variance
+
+Checking for variables with a near-zero variance that will not be valuable for use in the predictions, `HydPressure1` can be removed.
 
 ```{r}
 names(raw_df)[nearZeroVar(raw_df)]
 ```
 
 ### Missing Data and Imputation
+
+Making good use of the `caret` package and the `preProcess()` function, the data sets are scaled and centered, transformed via BoxCox, and missing values imputted using knn imputation process is a single steps and line of code. 
 
 ```{r, warning = FALSE, message = FALSE, echo=FALSE}
 #plot missing values using VIM package
@@ -163,6 +175,8 @@ df <- predict(preProc, as.data.frame(raw_df))
 
 ## Feature Q-Q Plots
 
+The final visualization used to determine features to model are the 'QQ' plots. More normal distributions will have plotted values along the diagonal line and are on balance more useful for predictions. There are some variables that have near-horizontal plots that will not provide much insight when used for predictions.
+
 ```{r, warning = FALSE, message = FALSE, echo=FALSE}
 qq_data <- df
 
@@ -171,7 +185,7 @@ DataExplorer::plot_qq(qq_data, nrow = 4L, ncol = 3L)
 
 ```{r}
 xTrain <- df %>%
-  select(-PH)
+  select(-PH, -CarbVolume, -CarbPressure, -MnfFlow, -FillPressure, -HydPressure2, -FillerLevel, -FillerSpeed, -Balling, -AlchRel, -CarbRel, -BallingLvl, -PressureSetpoint, -BowlSetpoint, -MFR, -HydPressure3, -CarbTemp)
 yTrain <- df %>%
   select(PH)
 ```
@@ -180,23 +194,8 @@ yTrain <- df %>%
 head(xTrain)
 ```
 
-
-```{r, warning = FALSE, message = FALSE, echo=FALSE}
-ggplot(stack(xTrain), aes(x = ind, y = values)) +
-  geom_boxplot(color = "darkblue",
-               fill = "lightblue",
-               alpha = 0.2,
-               outlier.color = "red",
-               outlier.fill = "red",
-               outlier.alpha = 0.2,
-               notch = TRUE) + 
-  labs(title = "Boxplot of all feature variables") + 
-  scale_y_log10()
-```
-
 ```{r}
-
-tooHigh <- findCorrelation(cor(xTrain), cutoff = .75)
+tooHigh <- findCorrelation(cor(xTrain), cutoff = 0.75)
 
 tooHigh
 ```
@@ -204,17 +203,25 @@ tooHigh
 ```{r}
 xTrain <- xTrain[, -tooHigh]
 trainXnnet <- xTrain[, -tooHigh]
+
+head(xTrain)
 ```
 
 # Model Building
 
-## Repeated Cross Validation 
+## Repeated Cross Validation
+
+Because the test data values are not provided, it is not to our advantage to further split the training data into another test and train set. This is because the new "test" set may contain values that the training model will need when applied later to the actual test data. To side step this problem, the models will deploy a repeated cross validation approach that will split the training data up into chunks and train/test on those chunks. 
+
+While this may yield lower model power values in the training evaluation, the reading indicates that models built in this way will have better performance when applied to actual test data.
 
 ```{r}
 ctrl <- trainControl(method = "repeatedcv", number = 5, repeats = 5)
 ```
 
 ## Models Tested
+
+A series of models are tested based on the homework 2 problems. The models range from the simple linear regression to the more complex cubist and neural networks. A table is below that provides the full account of the performance values.
 
 ```{r}
 lm_model <- train(xTrain, yTrain$PH, method="lm", trControl=ctrl)
