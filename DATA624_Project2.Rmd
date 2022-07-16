@@ -56,6 +56,7 @@ library(broom)
 library(kableExtra)
 library(DataExplorer)
 library(psych)
+library(randomForest)
 ```
 
 ```{r}
@@ -369,7 +370,7 @@ df2$`Brand Code` <- NULL
 ```{r}
 # Writing Predictions
 
-final_test_pred <- predict(lm_model, newdata = df2)
+final_test_pred <- predict(cubistTuned, newdata = df2)
 ```
 
 ```{r}
@@ -384,6 +385,9 @@ final_test_pred_orig <- final_test_pred *
 head(final_test_pred_orig)
 ```
 
+```{r}
+write.csv(df2$PH <- final_test_pred_orig %>%  write.csv(., "project2_predictions.csv", row.names = F))
+```
 
 
 
