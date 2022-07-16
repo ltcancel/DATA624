@@ -56,6 +56,7 @@ library(broom)
 library(kableExtra)
 library(DataExplorer)
 library(psych)
+library(randomForest)
 ```
 
 ```{r}
@@ -185,7 +186,7 @@ DataExplorer::plot_qq(qq_data, nrow = 4L, ncol = 3L)
 
 ```{r}
 xTrain <- df %>%
-  select(-PH, -CarbVolume, -CarbPressure, -MnfFlow, -FillPressure, -HydPressure2, -FillerLevel, -FillerSpeed, -Balling, -AlchRel, -CarbRel, -BallingLvl, -PressureSetpoint, -BowlSetpoint, -MFR, -HydPressure3, -CarbTemp)
+  select(-PH)
 yTrain <- df %>%
   select(PH)
 ```
@@ -220,27 +221,7 @@ knn_model <- train(xTrain, yTrain$PH, method="knn", trControl=ctrl)
 knn_model
 ```
 
-```{r nnet}
 
-# Resource: Chapter 7.5 of textbook "Applied Predictive Modeling" by KJ
-
-## Create a specific candidate set of models to evaluate:
-nnetGrid <- expand.grid(.decay = c(0, 0.01, .1),
-                        .size = c(1:10),
-                        .bag = FALSE)
-
-
-nnetTune <- train(xTrain, yTrain$PH,
-                  method = "avNNet",
-                  tuneGrid = nnetGrid,
-                  trControl = ctrl,
-                  linout = TRUE,
-                  trace = FALSE,
-                  MaxNWts = 1 * (ncol(trainXnnet) + 10) + 10 + 1,
-                  maxit = 50)
-
-nnetTune
-```
 
 ```{r mars-chem}
 
@@ -346,6 +327,8 @@ Looking at the table above, the best performing model according to the RMSE is t
 # test data
 final_test <- read_csv("StudentEvaluation- TO PREDICT.csv")
 colnames(final_test) <- gsub(" ","",colnames(final_test))
+
+head(final_test)
 ```
 
 ```{r}
@@ -354,8 +337,20 @@ colnames(final_test) <- gsub(" ","",colnames(final_test))
 ```
 
 ```{r}
-# preProc2 <- preProcess(as.data.frame(final_test), method = c("BoxCox","center","scale","knnImpute"))
-# df2 <- predict(preProc2, as.data.frame(final_test))
+xTest <- final_test %>%
+  select( -PH)
+yTest <- final_test %>%
+  select(PH)
+```
+
+
+```{r}
+preProc2 <- preProcess(as.data.frame(xTest), method = c("BoxCox","center","scale", "knnImpute"))
+xTest <- predict(preProc2, as.data.frame(xTest))
+```
+
+```{r}
+df2 <- cbind(xTest, yTest)
 ```
 
 ```{r}
@@ -366,14 +361,34 @@ colnames(final_test) <- gsub(" ","",colnames(final_test))
 ```
 
 ```{r}
-final_test$`Brand Code` <- NULL
+df2$`Brand Code` <- NULL
 
-final_test <- final_test %>% select(-CarbVolume, -CarbPressure, -MnfFlow, -FillPressure, -HydPressure2, -FillerLevel, -FillerSpeed, -Balling, -AlchRel, -CarbRel, -BallingLvl, -PressureSetpoint, -BowlSetpoint, -MFR, -HydPressure3, -CarbTemp)
+#final_test <- final_test %>% select(-CarbVolume, -CarbPressure, -MnfFlow, -FillPressure, -HydPressure2, -FillerLevel, -FillerSpeed, -Balling, -AlchRel, -CarbRel, -BallingLvl, -PressureSetpoint, -BowlSetpoint, -MFR, -HydPressure3, -CarbTemp)
 ```
 
 
 ```{r}
 # Writing Predictions
 
-final_test$PH <- predict(cubistTuned, newdata = final_test) %>% write.csv(., "Group1_P2_Predictions.csv", row.names = F)
+final_test_pred <- predict(cubistTuned, newdata = df2)
 ```
+
+```{r}
+scaled.PH <- scale(raw_df$PH, center = TRUE, scale = TRUE)
+```
+
+```{r}
+final_test_pred_orig <- final_test_pred *
+  attr(scaled.PH, 'scaled:scale') +
+  attr(scaled.PH, 'scaled:center')
+
+head(final_test_pred_orig)
+```
+
+```{r}
+write.csv(df2$PH <- final_test_pred_orig %>%  write.csv(., "project2_predictions.csv", row.names = F))
+```
+
+
+
+
