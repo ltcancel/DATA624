@@ -16,6 +16,11 @@ knitr::knit_engines$set(python = reticulate::eng_python)
 
 ### 1. Introduction
 
+The analysis was preformed with the Python script in R Studio as a comparison on the ease of programming and performing machine learning techniques. RStudio 
+
+A beverage manufacturing company design products in an acceptable range for consumption. In the case of beverages, a manufacturer has to maintain `a critical` range for hydrogen (PH), a measure of acidity/alkalinity, for individual health and safety. 
+
+
 
 ### 2. Required R Libraries / Import Python Packages 
 
